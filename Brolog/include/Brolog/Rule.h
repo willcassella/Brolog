@@ -2,43 +2,43 @@
 #pragma once
 
 #include <cstdint>
-#include "Var.h"
-#include "TMP.h"
+#include <tuple>
+#include "VarChain.h"
 #include "DataBase.h"
 #include "Enumerator.h"
 
 namespace brolog
 {
-	template <typename Cookie, typename ... ArgTs>
+	template <typename Cookie, typename ... Ts>
 	struct RuleType
 	{
-		using SatisfyArgT = std::tuple<Var<ArgTs>...>;
+		using SatisfyArgT = std::tuple<Var<typename ParamTs::Type>...>;
 
-		using EnumeratorT = Enumerator<std::tuple<ArgTs...>>;
+		using EnumeratorT = Enumerator<std::tuple<typename ParamTs::Type...>>;
 
 		template <typename DBase>
 		using InstanceT = std::size_t(*)(const DBase&, const SatisfyArgT&, const EnumeratorT&);
 	};
 
-	template <std::size_t I>
-	struct VarArg
-	{
-	};
-
-	/* The term to satisfy, and the way to satisfy it (argument indices)
-	 * If the argument index is out of bounds of the given arguments, it needs to create a new unbound variable. */
-	template <typename TermT, typename ... Args>
+	/* The predicate to satisfy, and the way to satisfy it (argument names).
+	 * If any of the argument names have not previously been used in this rule, it is interpreted as a new unbound variable. */
+	template <typename PredT, char ... Args>
 	struct Satisfy
 	{
-		template <typename DBaseT, typename ... ArgTs, typename EnumeratorFn>
-		static auto satisfy(const DBaseT& dataBase, std::tuple<Var<ArgTs>...>& args, const EnumeratorFn& enumerator)
+		template <typename NextSat, typename DBaseT, typename VarChainT, typename EnumeratorFn>
+		static std::size_t satisfy(const DBaseT& dataBase, const VarChainT& vars, const EnumeratorFn& enumerator)
 		{
-			return static_cast<DataBaseElement<TermT>&>(dataBase).satisfy();
+			auto localArgPack = create_arg_pack(typename PredT::arg_list{}, tmp::char_list<Args...>{}, vars);
+			PredT::satisfy(dataBase, localArgPack, [&](const auto&)
+			{
+				NextSat::satisfy(dataBase, localArgPack.var_chain, enumerator);
+			});
 		}
-
-	private:
-
-		template <typename ArgT, typename ... ArgTs>
-		static bool construct_satisfy_args(tmp::list<ArgT, ArgTs...>, )
 	};
+
+	template <char ... Ps>
+	using Params = tmp::char_list<Ps...>;
+
+	template <typename Type, typename Ps, typename ... Predicates>
+	struct Rule {};
 }

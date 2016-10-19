@@ -1,6 +1,9 @@
 // Var.h
 #pragma once
 
+#include <tuple>
+#include "TMP.h"
+
 namespace brolog
 {
 	template <typename T>
@@ -11,24 +14,38 @@ namespace brolog
 	public:
 
 		Var()
-			: _has_value(false)
+			: _unified(false)
 		{
 		}
 		Var(const T& value)
-			: _has_value(true), _value(value)
+			: _unified(true), _value(value)
 		{
+		}
+		Var(const Var& copy)
+			: _unified(copy._unified)
+		{
+			if (unified())
+			{
+				_value = copy._value;
+			}
 		}
 
 		///////////////////
 		///   Methods   ///
 	public:
 
-		bool has_value() const
+		bool unified() const
 		{
-			return _has_value;
+			return _unified;
 		}
 
-		const T& get_value() const
+		void unify(const T& value)
+		{
+			_value = value;
+			_unified = true;
+		}
+
+		const T& value() const
 		{
 			return _value;
 		}
@@ -37,10 +54,24 @@ namespace brolog
 		///   Fields   ///
 	private:
 
-		bool _has_value;
+		bool _unified;
 		union
 		{
 			T _value;
 		};
+	};
+
+	template <typename ... Ts>
+	struct ArgPack
+	{
+		using TupleType = std::tuple<Var<Ts>*...>;
+
+		///////////////////
+		///   Methods   ///
+	public:
+
+		virtual TupleType get_args() = 0;
+
+		virtual void reset() = 0;
 	};
 }
