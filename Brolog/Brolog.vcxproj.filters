@@ -29,10 +29,16 @@
     <ClInclude Include="include\Brolog\Var.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="include\Brolog\Enumerator.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Brolog\Function.h">
+      <Filter>include</Filter>
+    </ClInclude>
     <ClInclude Include="include\Brolog\VarChain.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="include\Brolog\Enumerator.h">
+    <ClInclude Include="include\Brolog\ArgPack.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

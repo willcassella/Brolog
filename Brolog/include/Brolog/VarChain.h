@@ -1,120 +1,252 @@
 // VarChain.h
 #pragma once
 
+#include <cassert>
+#include <tuple>
+#include <vector>
+#include "TMP.h"
 #include "Var.h"
 
 namespace brolog
 {
-	template <char Name>
+	template <char N>
 	struct VarName {};
 
-	template <typename T, char Name>
-	struct VarChainElement : VarName<Name>
+	template <typename T, char N>
+	struct VarChainElement : Var<T>, VarName<N>
 	{
-		//////////////////
-		///   Fields   ///
+	};
+
+	template <typename T, char Name>
+	struct StoredVarChainElement : VarChainElement<T, Name>
+	{
+		////////////////////////
+		///   Constructors   ///
 	public:
 
-		Var<T> value;
+		StoredVarChainElement()
+			: _unified(false)
+		{
+		}
+
+		///////////////////
+		///   Methods   ///
+	public:
+
+		bool unified() const final override
+		{
+			return _unified;
+		}
+
+		const T& value() const final override
+		{
+			assert(_unified);
+			return _value;
+		}
+
+		void unify(const T& value) final override
+		{
+			assert(!_unified);
+			_value = value;
+			_unified = true;
+		}
+
+		void unbind() final override
+		{
+			assert(_unified);
+			_unified = false;
+		}
+
+		//////////////////
+		///   Fields   ///
+	private:
+
+		bool _unified;
+		union
+		{
+			T _value;
+		};
+	};
+
+	template <typename T, char Name>
+	struct ReferencedVarChainElement : VarChainElement<T, Name>
+	{
+		////////////////////////
+		///   Constructors   ///
+	public:
+
+		~ReferencedVarChainElement()
+		{
+			// Unbind all previously unbound vars, since the stack is unwinding
+			for (auto var : _unbound)
+			{
+				if (var->unified())
+				{
+					var->unbind();
+				}
+			}
+		}
+
+		///////////////////
+		///   Methods   ///
+	public:
+
+		bool unified() const final override
+		{
+			return !_vars.empty() && _vars.front()->unified();
+		}
+
+		const T& value() const final override
+		{
+			assert(this->unified());
+			return _vars.front()->value();
+		}
+
+		void unify(const T& value) final override
+		{
+			assert(!this->unified());
+			assert(!_vars.empty());
+
+			for (auto var : _vars)
+			{
+				if (!var->unified())
+				{
+					var->unify(value);
+				}
+			}
+		}
+
+		void unbind() final override
+		{
+			// You can only unbind this if all vars were original unbound
+			assert(_vars.size() == _unbound.size());
+			for (auto var : _vars)
+			{
+				if (var->bound())
+				{
+					var->unbind();
+				}
+			}
+		}
+
+		bool add_var(Var<T>* var)
+		{
+			// If we've already been unified (by previously adding a unified variable)
+			if (this->unified())
+			{
+				// If the variable has not been unified
+				if (!var->unified())
+				{
+					// Unify it, and put it in
+					var->unify(this->value());
+					_unbound.push_back(var);
+				}
+				else
+				{
+					// Make sure the variable's value works with this var's value
+					if (var->value() != this->value())
+					{
+						// Unification failed
+						return false;
+					}
+				}
+			}
+			else
+			{
+				// If the variable we're adding has not been unified
+				if (!var->unified())
+				{
+					_unbound.push_back(var);
+				}
+				else
+				{
+					// Try to unify all variables with the new variable's value
+					for (auto existingVar : _vars)
+					{
+						// If we have a duplicate variable, unifying a previous one might unify a future one
+						if (!existingVar->unified())
+						{
+							existingVar->unify(var->value());
+						}
+					}
+				}
+			}
+
+			// Add it to the list of variables
+			_vars.push_back(var);
+			return true;
+		}
+
+		//////////////////
+		///   Fields   ///
+	private:
+
+		/* Array of all vars referenced in this element. */
+		std::vector<Var<T>*> _vars;
+
+		/* Array of vars that were originally unbound. */
+		std::vector<Var<T>*> _unbound;
 	};
 
 	namespace impl
 	{
-		template <bool ExistingVar, typename VarChain, typename T, char N>
-		struct AddVarChainElement : VarChain
+		template <
+			bool ExistingVar,
+			typename ChainT,
+			typename T, char N,
+			template <typename TypeT, char Name> class Element>
+		struct AppendVarChain
 		{
-			static_assert(std::is_base_of<VarChainElement<T, N>, VarChain>::value,
-				"Two instances of same var name with different types is not allowed.");
+			static_assert(std::is_base_of<VarChainElement<T, N>, ChainT>::value,
+				"Two occurrences of the same var name with different types is not allowed.");
 
-			////////////////////////
-			///   Constructors   ///
-		public:
-
-			AddVarChainElement() = default;
-
-			template <typename InitVarChain>
-			AddVarChainElement(const InitVarChain& varChain)
-				: VarChain(varChain)
-			{
-			}
+			using result = ChainT;
 		};
 
-		template <typename VarChain, typename T, char N>
-		struct AddVarChainElement< false, VarChain, T, N > : VarChain, VarChainElement<T, N>
+		template <
+			typename ChainT,
+			typename T, char N,
+			template <typename TypeT, char Name> class Element>
+		struct AppendVarChain< false, ChainT, T, N, Element>
 		{
-			////////////////////////
-			///   Constructors   ///
-		public:
-
-			AddVarChainElement<false, VarChain, T, N>() = default;
-
-			AddVarChainElement<false, VarChain, T, N>(const AddVarChainElement<false, VarChain, T, N>& copy) = default;
-
-			template <typename InitVarChain>
-			AddVarChainElement(const InitVarChain& varChain)
-				: VarChain(varChain)
-			{
-			}
-		};
-
-		template <typename VarChain, typename Types, typename Names>
-		struct VarChainBuilder;
-
-		template <typename VarChain, typename T, typename ... Ts, char N, char ... Ns>
-		struct VarChainBuilder< VarChain, tmp::type_list<T, Ts...>, tmp::char_list<N, Ns...> >
-		{
-			using result = typename VarChainBuilder<
-				AddVarChainElement<std::is_base_of<VarName<N>, VarChain>::value, VarChain, T, N>,
-				tmp::type_list<Ts...>,
-				tmp::char_list<Ns...>>::result;
-		};
-
-		template <typename VarChain>
-		struct VarChainBuilder< VarChain, tmp::type_list<>, tmp::char_list<> >
-		{
-			using result = VarChain;
+			struct result : Element<T, N>, ChainT {};
 		};
 	}
 
-	template <typename ... Ts, char ... Ns, typename VarChain>
-	auto create_arg_pack(tmp::type_list<Ts...>, tmp::char_list<Ns...>, const VarChain& varChain)
+	struct VarChainRoot {};
+
+	template <typename VarChainT, template <typename T, char N> class Element, typename T, typename ... Ts, char N, char ... Ns, typename ... OuterChainTs>
+	auto create_var_chain(tmp::type_list<T, Ts...>, tmp::char_list<N, Ns...>, OuterChainTs& ... outers)
 	{
-		struct Result final : ArgPack<Ts...>
+		return create_var_chain<
+			typename impl::AppendVarChain<
+				tmp::is_base_of_any<VarName<N>, VarChainT, OuterChainTs...>::value,
+				VarChainT, T, N, Element>::result, Element>
+			(tmp::type_list<Ts...>{},
+			tmp::char_list<Ns...>{},
+			outers...);
+	}
+
+	template <typename VarChainT, template <typename T, char N> class Element, typename ... OuterChainTs>
+	auto create_var_chain(tmp::type_list<>, tmp::char_list<>, OuterChainTs& ... /*outers*/)
+	{
+		return VarChainT();
+	}
+
+	template <std::size_t I, typename T, typename ... Ts, char N, char ... Ns, typename ArgPackT, typename VarChainT>
+	bool fill_initial_arg_chain(tmp::type_list<T, Ts...>, tmp::char_list<N, Ns...>, const ArgPackT& argPack, VarChainT& varChain)
+	{
+		if (!static_cast<ReferencedVarChainElement<T, N>&>(varChain).add_var(std::get<I>(argPack)))
 		{
-			using VarChainT = typename impl::VarChainBuilder<VarChain, tmp::type_list<Ts...>, tmp::char_list<Ns...>>::result;
+			return false;
+		}
 
-			////////////////////////
-			///   Constructors   ///
-		public:
+		return fill_initial_arg_chain<I + 1>(tmp::type_list<Ts...>{}, tmp::char_list<Ns...>{}, argPack, varChain);
+	}
 
-			Result(const VarChain& outerVarChain)
-				: outer_var_chain(&outerVarChain),
-				var_chain(outerVarChain)
-			{
-			}
-
-			///////////////////
-			///   Methods   ///
-		public:
-
-			typename ArgPack<Ts...>::TupleType get_args() override
-			{
-				return std::make_tuple(&(static_cast<VarChainElement<Ts, Ns>&>(var_chain).value)...);
-			}
-
-			void reset() override
-			{
-				var_chain = *outer_var_chain;
-			}
-
-			//////////////////
-			///   Fields   ///
-		public:
-
-			const VarChain* outer_var_chain;
-			VarChainT var_chain;
-		};
-
-		return Result(varChain);
+	template <std::size_t I, typename ArgPackT, typename VarChainT>
+	bool fill_initial_arg_chain(tmp::type_list<>, tmp::char_list<>, const ArgPackT& /*argPack*/, VarChainT& /*varChain*/)
+	{
+		return true;
 	}
 }

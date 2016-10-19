@@ -1,8 +1,6 @@
 // DataBase.h
 #pragma once
 
-#include <set>
-
 namespace brolog
 {
 	template <typename DBase, typename TermT>

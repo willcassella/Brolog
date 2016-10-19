@@ -1,7 +1,7 @@
 // Enumerator.h
 #pragma once
 
-#include <type_traits>
+#include "Function.h"
 
 namespace brolog
 {
@@ -49,39 +49,7 @@ namespace brolog
 		InvokerFn* _invoker;
 	};
 
-	struct Continuator
-	{
-		using UserData = const void*;
-		using InvokerFn = EControl(UserData);
-
-		////////////////////////
-		///   Constructors   ///
-	public:
-
-		template <typename Fn>
-		Continuator(Fn&& fn)
-		{
-			_user_data = &fn;
-			_invoker = [](UserData userData) -> EControl {
-				(*static_cast<const std::remove_reference_t<Fn>*>(userData))();
-				return EControl::CONTINUE;
-			};
-		}
-
-		///////////////////
-		///   Methods   ///
-	public:
-
-		EControl next() const
-		{
-			return _invoker(_user_data);
-		}
-
-		//////////////////
-		///   Fields   ///
-	private:
-
-		UserData _user_data;
-		InvokerFn* _invoker;
-	};
+	using EmptyFunc = Function<void()>;
+	using ContinueFn = EmptyFunc;
+	using BacktrackFn = EmptyFunc;
 }
