@@ -20,14 +20,13 @@ namespace brolog
 		static void satisfy(const DBaseT& dataBase, const std::tuple<Var<ArgTs>*...>& args, const ContinueFnT& next)
 		{
 			const auto& instances = static_cast<const DataBaseElement<DBaseT, FactType>&>(dataBase).instances;
-			auto factIterator = instances.begin();
 			auto control = EControl::CONTINUE;
 
 			// While we haven't run out of facts, and the enumerator wants us to continue
-			for (; factIterator != instances.end() && control != EControl::BREAK; ++factIterator)
+			for (auto fact = instances.begin(); fact != instances.end() && control != EControl::BREAK; ++fact)
 			{
 				// Unify the argumentss
-				unify_arg_tuple(args, *factIterator, next);
+				unify_arg_pack(args, *fact, next);
 			}
 		}
 

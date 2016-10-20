@@ -6,11 +6,11 @@
 
 namespace brolog
 {
-	//template <typename ... Ts, char ... Ns, typename ... VarChainTs>
-	//std::tuple<Var<Ts>*...> create_arg_pack(tmp::type_list<Ts...>, tmp::char_list<Ns...>, VarChainTs& ... varChains)
-	//{
-	//	return std::make_tuple(&static_cast<VarChainElement<Ts, Ns>&>(vars)...);
-	//}
+	template <typename ... Ts, char ... Ns, typename ... VarChainTs>
+	std::tuple<Var<Ts>*...> create_arg_pack(tmp::type_list<Ts...>, tmp::char_list<Ns...>, VarChainTs& ... varChains)
+	{
+		return std::make_tuple(&tmp::cast_first_suitable<VarChainElement<Ts, Ns>>(varChains...)...);
+	}
 
 	template <std::size_t I, typename T, typename ... Ts, typename ContinueFnT>
 	void unify_arg_pack_element(

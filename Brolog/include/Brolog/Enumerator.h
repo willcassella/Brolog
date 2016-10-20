@@ -49,7 +49,5 @@ namespace brolog
 		InvokerFn* _invoker;
 	};
 
-	using EmptyFunc = Function<void()>;
-	using ContinueFn = EmptyFunc;
-	using BacktrackFn = EmptyFunc;
+	using ContinueFn = Function<void()>;
 }

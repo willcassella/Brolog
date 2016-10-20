@@ -3,25 +3,33 @@
 #include <iostream>
 #include "../include/Brolog/Brolog.h"
 
-using FNeighbor = brolog::FactType<struct Neighbor, int, int>;
-//
-//using RConnected = brolog::RuleType<struct Connected, int, int>;
-//
-//using Connected_1 = brolog::Rule<RConnected, brolog::Params<'X', 'Y'>,
-//	brolog::Satisfy<FNeighbor, 'X', 'X'>>;
+using FNeighbor = brolog::FactType<struct Neighbor, char, char>;
+
+using RConnected = brolog::RuleType<struct Connected, char, char>;
+
+void print()
+{
+	std::cout << "Instance found" << std::endl;
+}
 
 int main()
 {
-	brolog::DataBase<FNeighbor> dataBase;
-	dataBase.insert<FNeighbor>(1, 2);
-	dataBase.insert<FNeighbor>(2, 2);
-	dataBase.insert<FNeighbor>(1, 4);
-	dataBase.insert<FNeighbor>(2, 3);
-	dataBase.insert<FNeighbor>(3, 4);
-	dataBase.insert<FNeighbor>(10, 10);
+	brolog::DataBase<FNeighbor, RConnected> dataBase;
+	dataBase.insert_fact<FNeighbor>('a', 'b');
+	dataBase.insert_fact<FNeighbor>('b', 'c');
+	dataBase.insert_fact<FNeighbor>('c', 'd');
 
-	auto varPack = brolog::create_var_chain<brolog::VarChainRoot, brolog::StoredVarChainElement>(
-		brolog::tmp::type_list<int, float>{}, brolog::tmp::char_list<'X', 'Y'>{});
+	dataBase.insert_rule<brolog::Rule<RConnected, brolog::Params<'X', 'Y'>,
+		brolog::Satisfy<FNeighbor, 'X', 'Y'>>>();
+
+	dataBase.insert_rule<brolog::Rule<RConnected, brolog::Params<'X', 'Y'>,
+		brolog::Satisfy<FNeighbor, 'Y', 'X'>>>();
+
+	dataBase.insert_rule<brolog::Rule<RConnected, brolog::Params<'X', 'Y'>,
+		brolog::Satisfy<FNeighbor, 'X', 'Z'>,
+		brolog::Satisfy<RConnected, 'Z', 'Y'>>>();
+
+	dataBase.satisfy<RConnected>('a', 'c')(&print);
 
 	std::cin.get();
 }

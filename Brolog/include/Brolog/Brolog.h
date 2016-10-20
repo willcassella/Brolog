@@ -3,3 +3,4 @@
 
 #include "DataBase.h"
 #include "Fact.h"
+#include "Rule.h"

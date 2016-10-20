@@ -1,7 +1,7 @@
 // Rule.h
 #pragma once
 
-#include "VarPack.h"
+#include "ArgPack.h"
 #include "DataBase.h"
 #include "Enumerator.h"
 
@@ -20,7 +20,21 @@ namespace brolog
 		template <typename DBaseT, typename ContinueFnT>
 		static void satisfy(const DBaseT& dataBase, ArgTuple& args, const ContinueFnT& next)
 		{
+			// Enumerate all instances of this rule in the database
+			const auto& instances = static_cast<const DataBaseElement<DBaseT, RuleType>&>(dataBase).instances;
+			auto control = EControl::CONTINUE;
 
+			for (auto rule = instances.begin(); rule != instances.end() && control != EControl::BREAK; ++rule)
+			{
+				(*rule)(dataBase, args, next);
+			}
+		}
+
+		/* Creates a new instance of this fact and inserts it into the database. */
+		template <typename RuleInstance, typename DBaseT>
+		static void make_instance(DBaseT& dataBase)
+		{
+			static_cast<DataBaseElement<DBaseT, RuleType>&>(dataBase).instances.insert(&RuleInstance::template satisfy<DBaseT>);
 		}
 	};
 
@@ -38,11 +52,23 @@ namespace brolog
 	template <typename TypeT, typename Params, typename ... PredicateTs>
 	struct Rule
 	{
+		using Type = TypeT;
+
 		template <typename DBaseT>
 		static void satisfy(const DBaseT& dataBase, typename TypeT::ArgTuple& args, const ContinueFn& next)
 		{
-			auto varPack = create_var_pack<typename TypeT::ArgTypes, Params>();
-			satisfy_predicate(tmp::type_list<PredicateTs...>{}, dataBase, varPack, next);
+			// Create an initial var chain
+			auto varChain = create_var_chain<VarChainRoot, ReferencedVarChainElement>(typename TypeT::ArgTypes{}, Params{});
+
+			// Fill it
+			if (!fill_initial_arg_chain<0>(typename TypeT::ArgTypes{}, Params{}, args, varChain))
+			{
+				// Args don't work, backtrack immediately
+				return;
+			}
+
+			// Satisfy the first predicate
+			satisfy_predicate(tmp::type_list<PredicateTs...>{}, dataBase, next, varChain);
 		}
 
 	private:
@@ -52,35 +78,49 @@ namespace brolog
 		char ... ArgNs,
 		typename ... SatTs,
 		typename DBaseT,
-		typename OuterVarPackT,
-		typename ContinueFnT>
+		typename ContinueFnT,
+		typename ... OuterVarChainTs>
 		static void satisfy_predicate(
 			tmp::type_list<Satisfy<PredT, ArgNs...>, SatTs...>,
 			const DBaseT& dataBase,
-			OuterVarPackT& outerVarPack,
-			const ContinueFnT& next)
+			const ContinueFnT& next,
+			OuterVarChainTs& ... outerVarChains)
 		{
-			// Create a new var pack for this scope (allows introducing new variables and type-checking existing ones)
-			auto localVarPack = create_var_pack<typename PredT::ArgTypes, tmp::char_list<ArgNs...>>(outerVarPack);
+			// Create a new var chain for this scope (allows introducing new variables and type-checking existing ones)
+			auto localVarChain = create_var_chain<VarChainRoot, StoredVarChainElement>(
+				typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains...);
+
+			// Create an arg pack for this predicate
+			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains..., localVarChain);
 
 			// Recursively satisfy predicates
-			PredT::satisfy(dataBase, create_arg_tuple(typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, localVarPack),
+			PredT::satisfy(dataBase, argPack,
 				[&]() {
-					satisfy_predicate(tmp::type_list<SatTs...>{}, dataBase, localVarPack, next);
+					satisfy_predicate(tmp::type_list<SatTs...>{}, dataBase, next, outerVarChains..., localVarChain);
 			});
 		}
 
 		template <
 		typename DBaseT,
-		typename OuterVarPackT,
-		typename ContinueFnT>
+		typename ContinueFnT,
+		typename ... OuterVarChainTs>
 		static void satisfy_predicate(
 			tmp::type_list<>,
 			const DBaseT& /*dataBase*/,
-			OuterVarPackT& /*outerVarPack*/,
-			const ContinueFnT& next)
+			const ContinueFnT& next,
+			OuterVarChainTs& ... /*outerVarCHains*/)
 		{
 			next();
 		}
+	};
+
+	template <typename DBase, typename CookieT, typename ... ArgTs>
+	struct DataBaseElement< DBase, RuleType<CookieT, ArgTs...> >
+	{
+		//////////////////
+		///   Fields   ///
+	public:
+
+		std::set<typename RuleType<CookieT, ArgTs...>::template Instance<DBase>> instances;
 	};
 }
