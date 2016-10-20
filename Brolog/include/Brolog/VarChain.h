@@ -10,7 +10,10 @@
 namespace brolog
 {
 	template <char N>
-	struct VarName {};
+	struct VarName
+	{
+		static constexpr char VAR_NAME = N;
+	};
 
 	template <typename T, char N>
 	struct VarChainElement : Var<T>, VarName<N>

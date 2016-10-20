@@ -116,6 +116,7 @@
   <ItemGroup>
     <ClInclude Include="include\Brolog\ArgPack.h" />
     <ClInclude Include="include\Brolog\Function.h" />
+    <ClInclude Include="include\Brolog\Predicates\Math.h" />
     <ClInclude Include="include\Brolog\VarChain.h" />
     <ClInclude Include="include\Brolog\Brolog.h" />
     <ClInclude Include="include\Brolog\DataBase.h" />

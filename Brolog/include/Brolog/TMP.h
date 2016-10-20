@@ -34,6 +34,24 @@ namespace brolog
 		template <char ... Cs>
 		using char_list = std::integer_sequence<char, Cs...>;
 
+		template <char T, typename CharList>
+		struct element_of_char_list;
+
+		template <char T, char C, char ... Cs>
+		struct element_of_char_list < T, char_list<C, Cs...> > : element_of_char_list<T, char_list<Cs...>>
+		{
+		};
+
+		template <char T, char ... Cs>
+		struct element_of_char_list < T, char_list<T, Cs...> > : std::true_type
+		{
+		};
+
+		template <char T>
+		struct element_of_char_list < T, char_list<> > : std::false_type
+		{
+		};
+
 		template <bool B, bool ... Bs>
 		struct fold_or : std::bool_constant<B || fold_or<Bs...>::value>
 		{
