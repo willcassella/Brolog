@@ -49,6 +49,13 @@ namespace brolog
 	{
 	};
 
+	/* The predicate to not satify, and teh way to satisfy it (argument names).
+	 * Negation requires that all arguments have already been unified, and therfore does not allow introducing new arguments. */
+	template <typename PredicateT, char ... ArgNs>
+	struct NotSatisfy
+	{
+	};
+
 	template <typename TypeT, typename Params, typename ... PredicateTs>
 	struct Rule
 	{
@@ -98,6 +105,34 @@ namespace brolog
 				[&]() {
 					satisfy_predicate(tmp::type_list<SatTs...>{}, dataBase, next, outerVarChains..., localVarChain);
 			});
+		}
+
+		template <
+		typename PredT,
+		char ... ArgNs,
+		typename ... SatTs,
+		typename DBaseT,
+		typename ContinueFnT,
+		typename ... OuterVarChainTs>
+		static void satisfy_predicate(
+			tmp::type_list<NotSatisfy<PredT, ArgNs...>, SatTs...>,
+			const DBaseT& database,
+			const ContinueFnT& next,
+			OuterVarChainTs& ... outerVarChains)
+		{
+			// Do NOT create a local var chain for this scope (since introducing new variables in negative predicates is not allowed)
+			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains...);
+
+			bool satisfied = false;
+			PredT::satisfy(database, argPack,
+				[&]() {
+				satisfied = true;
+			});
+
+			if (!satisfied)
+			{
+				satisfy_predicate(tmp::type_list<SatTs...>{}, database, next, outerVarChains...);
+			}
 		}
 
 		template <
