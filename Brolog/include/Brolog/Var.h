@@ -1,4 +1,4 @@
-// Var.h
+// Var.h - Copyright (c) 2016 Will Cassella
 #pragma once
 
 namespace brolog

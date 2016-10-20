@@ -1,4 +1,4 @@
-// main.cpp
+// main.cpp - Copyright (c) 2016 Will Cassella
 
 #include <iostream>
 #include "../include/Brolog/Brolog.h"
@@ -29,7 +29,7 @@ int main()
 		brolog::Satisfy<FNeighbor, 'X', 'Z'>,
 		brolog::Satisfy<RConnected, 'Z', 'Y'>>>();
 
-	dataBase.satisfy<RConnected>('a', 'c')(&print);
+	dataBase.satisfy<RConnected>(brolog::Unknown<'X'>(), 'd')(&print);
 
 	std::cin.get();
 }

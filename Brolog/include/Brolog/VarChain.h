@@ -1,4 +1,4 @@
-// VarChain.h
+// VarChain.h - Copyright (c) 2016 Will Cassella
 #pragma once
 
 #include <cassert>

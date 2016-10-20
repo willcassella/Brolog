@@ -1,4 +1,4 @@
-// TMP.h
+// TMP.h - Copyright (c) 2016 Will Cassella
 #pragma once
 
 #include <type_traits>

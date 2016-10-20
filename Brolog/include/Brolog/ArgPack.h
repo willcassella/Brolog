@@ -1,4 +1,4 @@
-// ArgPack.h
+// ArgPack.h - Copyright (c) 2016 Will Cassella
 #pragma once
 
 #include <tuple>
