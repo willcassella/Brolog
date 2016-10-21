@@ -50,20 +50,7 @@ using RSafe = brolog::RuleType<struct CSafe, int, int>;
 using RSafeUnexplored = brolog::RuleType<struct CSafeUnexplored, int, int>;
 
 // Database type
-using WumpusDB = brolog::DataBase<
-	FBreeze,
-	FStench,
-	FObstacle,
-	FEmpty,
-	RVisited,
-	RNoBreeze,
-	RNoStench,
-	RNotPit,
-	RPit,
-	RNotWumpus,
-	RWumpus,
-	RSafe,
-	RSafeUnexplored>;
+using WumpusDB = brolog::DataBase<FBreeze, FStench, FObstacle, FEmpty, RVisited, RNoBreeze, RNoStench, RNotPit, RPit, RNotWumpus, RWumpus, RSafe, RSafeUnexplored>;
 
 void add_visited_rules(WumpusDB& database)
 {
@@ -143,6 +130,50 @@ void add_not_pit_rules(WumpusDB& database)
 	database.insert_rule<RNotPit, Params<'X', 'Y'>,
 		Satisfy<RNoBreeze, 'X', 'A'>,
 		Satisfy<ConstantSum<int, -1>, 'Y', 'A'>>();
+}
+
+void add_pit_rules(WumpusDB& database)
+{
+	using namespace brolog;
+	database.insert_rule<RPit, Params<'X', 'Y'>,
+		Satisfy<FBreeze, 'E', 'Y'>, // There is a breeze (to the left of the tile)
+		Satisfy<ConstantSum<int, 1>, 'X', 'E'>, // X is E + 1
+		Satisfy<ConstantSum<int, -1>, 'L', 'E'>, // L is E - 1
+		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
+		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
+		Satisfy<RNotPit, 'E', 'A'>, // There is not a pit above the breeze
+		Satisfy<RNotPit, 'E', 'B'>, // There is not a pit below the breeze
+		Satisfy<RNotPit, 'L', 'Y'>>(); // There is not a pit to the left of the breeze
+
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'E', 'Y'>, // There is a breeze (to the right of the tile)
+		Satisfy<ConstantSum<int, -1>, 'X', 'E'>, // X is E - 1
+		Satisfy<ConstantSum<int, 1>, 'E', 'R'>, // R is E + 1
+		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
+		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
+		Satisfy<RNotWumpus, 'E', 'A'>, // There is not a pit above the breeze
+		Satisfy<RNotWumpus, 'E', 'B'>, // There is not a pit below the breeze
+		Satisfy<RNotWumpus, 'R', 'Y'>>(); // There is not a pit to the right of the breeze
+
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'X', 'E'>, // There is a breeze (below the tile)
+		Satisfy<ConstantSum<int, 1>, 'Y', 'E'>, // Y is E + 1
+		Satisfy<ConstantSum<int, -1>, 'B', 'E'>, // B is E - 1
+		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
+		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
+		Satisfy<RNotWumpus, 'X', 'B'>, // There is not a pit below the breeze
+		Satisfy<RNotWumpus, 'L', 'E'>, // There is not a pit to the left of the breeze
+		Satisfy<RNotWumpus, 'R', 'E'>>(); // There is not a pit to the right of the breeze
+
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'X', 'E'>, // There is a breeze (above the tile)
+		Satisfy<ConstantSum<int, -1>, 'Y', 'E'>, // Y is E - 1
+		Satisfy<ConstantSum<int, 1>, 'A', 'E'>, // A is E + 1
+		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
+		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
+		Satisfy<RNotWumpus, 'X', 'A'>, // There is not a pit above the breeze
+		Satisfy<RNotWumpus, 'L', 'E'>, // There is not a pit to the left of the breeze
+		Satisfy<RNotWumpus, 'R', 'E'>>(); // There is not a pit to the right of the breeze
 }
 
 void add_not_wumpus_rules(WumpusDB& database)
@@ -236,34 +267,39 @@ void add_safe_tile_rules(WumpusDB& database)
 		Satisfy<RNotWumpus, 'X', 'Y'>>();
 }
 
-void add_safe_unvisited_tile_rules(WumpusDB& database)
+void add_safe_unexplored_tile_rules(WumpusDB& database)
 {
 	using namespace brolog;
 
 	// A tile is safe and univisited if it is safe and unvisisted
-	database.insert_rule<RSafe, Params<'X', 'Y'>,
+	database.insert_rule<RSafeUnexplored, Params<'X', 'Y'>,
 		Satisfy<RSafe, 'X', 'Y'>,
 		NotSatisfy<RVisited, 'X', 'Y'>>();
 }
 
 int main()
 {
+	// Instantiate the database
 	using brolog::Unknown;
 	auto database = WumpusDB{};
 	add_visited_rules(database);
 	add_no_breeze_rules(database);
 	add_no_stench_rules(database);
 	add_not_pit_rules(database);
+	add_pit_rules(database);
 	add_not_wumpus_rules(database);
 	add_wumpus_rules(database);
+	add_safe_tile_rules(database);
+	add_safe_unexplored_tile_rules(database);
 
+	// Add obstacles to the database
 	database.insert_fact<FObstacle>(-1, 0);
 	database.insert_fact<FObstacle>(-1, 1);
 	database.insert_fact<FObstacle>(0, -1);
 	database.insert_fact<FObstacle>(1, -1);
 	database.insert_fact<FEmpty>(0, 0);
 
-	auto query = database.satisfy<RNotPit>(Unknown<'X'>(), Unknown<'Y'>());
+	auto query = database.satisfy<RSafeUnexplored>(Unknown<'X'>(), Unknown<'Y'>());
 
 	query([](auto x, auto y)
 	{
