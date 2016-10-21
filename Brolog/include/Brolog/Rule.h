@@ -34,7 +34,7 @@ namespace brolog
 		template <typename RuleInstance, typename DBaseT>
 		static void make_instance(DBaseT& dataBase)
 		{
-			static_cast<DataBaseElement<DBaseT, RuleType>&>(dataBase).instances.insert(&RuleInstance::template satisfy<DBaseT>);
+			static_cast<DataBaseElement<DBaseT, RuleType>&>(dataBase).instances.push_back(&RuleInstance::template satisfy<DBaseT>);
 		}
 	};
 
@@ -156,6 +156,8 @@ namespace brolog
 		///   Fields   ///
 	public:
 
-		std::set<typename RuleType<CookieT, ArgTs...>::template Instance<DBase>> instances;
+		/* Rules are stored as a vector instead of a set, since there is less likelyhood of duplication
+		 * and it allows for control over iteration order. */
+		std::vector<typename RuleType<CookieT, ArgTs...>::template Instance<DBase>> instances;
 	};
 }
