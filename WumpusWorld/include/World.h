@@ -1,20 +1,21 @@
 //World.h
 #pragma once
 #include <vector>
+#include <algorithm>
 #include <ctime>
 #include <set>
 #include <cmath>
 
-enum TileObservations
+namespace TileObservations
 {
-	NONE = 0,
-	BREEZE = (1 << 0),
-	STENCH = (1 << 1),
-	BUMP = (1 << 2),
-	GLIMMER = (1 << 3),
-	PIT_DEATH = (1 << 4),
-	WUMPUS_DEATH = (1 << 5)
-};
+	constexpr unsigned NONE = 0;
+	constexpr unsigned BREEZE = (1 << 0);
+	constexpr unsigned STENCH = (1 << 1);
+	constexpr unsigned BUMP = (1 << 2);
+	constexpr unsigned GLIMMER = (1 << 3);
+	constexpr unsigned PIT_DEATH = (1 << 4);
+	constexpr unsigned WUMPUS_DEATH = (1 << 5);
+}
 
 struct Coordinate
 {
@@ -54,6 +55,10 @@ bool operator==(const Coordinate& lhs, const Coordinate& rhs)
 {
 	return lhs.x == rhs.x && lhs.y == rhs.y;
 }
+bool operator<(const Coordinate& lhs, const Coordinate& rhs)
+{
+	return (lhs.x < rhs.x && lhs.y < rhs.y);
+}
 bool operator!=(const Coordinate& lhs, const Coordinate& rhs)
 {
 	return !(lhs == rhs);
@@ -62,55 +67,64 @@ bool operator!=(const Coordinate& lhs, const Coordinate& rhs)
 class World {
 public:
 	World(int size, float pWumpus, float pPit, float pObs) {
-		srand(time(NULL));
-		std::set<Coordinate> usedCoords;
+		srand((int)time(NULL));
+		std::vector<Coordinate> usedCoords;
 		int numTiles = size * size;
-		int numWumps = floor(pWumpus * numTiles);
-		int numPits = floor(pPit * numTiles);
-		int numObs = floor(pObs * numTiles);
+		int numWumps = (int)floor(pWumpus * numTiles);
+		int numPits = (int)floor(pPit * numTiles);
+		int numObs = (int)floor(pObs * numTiles);
 
-		Coordinate temp;
+		Coordinate temp = randomCoord(size);
 		for (int i = 0; i < numObs; i++) {
-			temp = randomCoord(size);
-			while (usedCoords.find(temp) != usedCoords.end()) {
+			while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
 				temp = randomCoord(size);
 			}
-			usedCoords.insert(temp);
+			usedCoords.push_back(temp);
 			obstacle_tiles.push_back(temp);
 		}
 
 		for (int i = 0; i < numWumps; i++) {
-			temp = randomCoord(size);
-			while (usedCoords.find(temp) != usedCoords.end()) {
+			while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
 				temp = randomCoord(size);
 			}
-			usedCoords.insert(temp);
+			usedCoords.push_back(temp);
 			wumpus_tiles.push_back(temp);
 		}
 
 		for (int i = 0; i < numPits; i++) {
-			temp = randomCoord(size);
-			while (usedCoords.find(temp) != usedCoords.end()) {
+			while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
 				temp = randomCoord(size);
 			}
-			usedCoords.insert(temp);
+			usedCoords.push_back(temp);
 			pit_tiles.push_back(temp);
 		}
+
+		while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
+			temp = randomCoord(size);
+		}
+		gold_tile = temp;
+		usedCoords.push_back(temp);
+		while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
+			temp = randomCoord(size);
+		}
+		player_start = temp;
 	}
 
-	TileObservations getInfo(Coordinate youAreHere) {
-		TileObservations Obs = NONE;
+	unsigned getInfo(Coordinate youAreHere) {
+		unsigned Obs = TileObservations::NONE;
 		if (youAreHere == gold_tile)
 		{
-			Obs = GLIMMER;
+			Obs = TileObservations::GLIMMER;
 		}
 
-		TileObservations percepts = search<STENCH>(youAreHere, wumpus_tiles) | search<BREEZE>(youAreHere, pit_tiles) | checkCurrent<BUMP>(youAreHere, obstacle_tiles)
-			| checkCurrent<WUMPUS_DEATH>(youAreHere, wumpus_tiles) | checkCurrent<PIT_DEATH>(youAreHere, pit_tiles) | Obs;
+		unsigned percepts = search<TileObservations::STENCH>(youAreHere, wumpus_tiles) | search<TileObservations::BREEZE>(youAreHere, pit_tiles) | checkCurrent<TileObservations::BUMP>(youAreHere, obstacle_tiles)
+			| checkCurrent<TileObservations::WUMPUS_DEATH>(youAreHere, wumpus_tiles) | checkCurrent<TileObservations::PIT_DEATH>(youAreHere, pit_tiles) | Obs;
+
+		return percepts;
 	}
 
-	template <TileObservations Obs>
-	static TileObservations search(Coordinate coord, const std::vector<Coordinate>& tiles)
+	template <unsigned Obs>
+	static unsigned search(Coordinate coord, const std::vector<Coordinate>& tiles)
 	{
 		auto result = std::find(tiles.begin(), tiles.end(), coord.above());
 		if (result != tiles.end())
@@ -118,29 +132,29 @@ public:
 			return Obs;
 		}
 
-		result = std::find(tiles.begin(), tiles.end(), coord.below())
+		result = std::find(tiles.begin(), tiles.end(), coord.below());
 			if (result != tiles.end())
 			{
 				return Obs;
 			}
 
-		result = std::find(tiles.begin(), tiles.end(), coord.left())
+		result = std::find(tiles.begin(), tiles.end(), coord.left());
 			if (result != tiles.end())
 			{
 				return Obs;
 			}
 
-		result = std::find(tiles.begin(), tiles.end(), coord.right())
+		result = std::find(tiles.begin(), tiles.end(), coord.right());
 			if (result != tiles.end())
 			{
 				return Obs;
 			}
 
-		return NONE;
+		return 0;
 	}
 
-	template <TileObservations Obs>
-	static TileObservations checkCurrent(Coordinate coord, const std::vector<Coordinate>& tiles)
+	template <unsigned Obs>
+	static unsigned checkCurrent(Coordinate coord, const std::vector<Coordinate>& tiles)
 	{
 		auto result = std::find(tiles.begin(), tiles.end(), coord);
 		if (result != tiles.end()) {
@@ -150,12 +164,23 @@ public:
 		return 0;
 	}
 
+	Coordinate get_start()
+	{
+		return player_start;
+	}
+
+	Coordinate get_gold()
+	{
+		return gold_tile;
+	}
+
 private:
 	std::vector<Coordinate> wumpus_tiles;
 	std::vector<Coordinate> pit_tiles;
 	std::vector<Coordinate> obstacle_tiles;
 	std::vector<Coordinate> reported_stenches;
 	Coordinate gold_tile;
+	Coordinate player_start;
 
 	Coordinate randomCoord(int size)
 	{
@@ -167,7 +192,7 @@ private:
 
 	int randomInt(int max)
 	{
-		return rand() % 100;
+		return rand() % max;
 	}
 
 };

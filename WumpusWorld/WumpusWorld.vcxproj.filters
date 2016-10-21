@@ -14,5 +14,16 @@
     <ClCompile Include="source\main.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="include\WGTest.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\WorldGenerator.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\World.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

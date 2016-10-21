@@ -2,7 +2,7 @@
 #pragma once
 #include <vector>
 
-		
+
 class WorldGenerator {
 public:
 	WorldGenerator(int size, double pWumpus, double pPit, double pObstacle) {
@@ -10,6 +10,10 @@ public:
 	}
 
 	std::vector<bool> getInfo(int x, int y) {
+
+	}
+
+	int randomInt(int max) {
 
 	}
 
