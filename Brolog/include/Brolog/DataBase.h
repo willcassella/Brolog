@@ -46,6 +46,12 @@ namespace brolog
 			FactT::make_instance(*this, std::forward<Args>(args)...);
 		}
 
+		template <typename FactT, typename ... Args>
+		void remove_fact(Args&& ... args)
+		{
+			FactT::remove_instance(*this, std::forward<Args>(args)...);
+		}
+
 		template <typename RuleT, typename Params, typename ... PredicateTs>
 		void insert_rule()
 		{
@@ -54,7 +60,7 @@ namespace brolog
 		}
 
 		template <typename TermT, typename ... ArgTs>
-		auto satisfy(const ArgTs& ... args)
+		auto satisfy(const ArgTs& ... args) const
 		{
 			// Create the var chain for this invocation and fill it
 			auto varChain = create_user_var_chain<VarChainRoot, char(0)>(typename TermT::ArgTypes{}, tmp::type_list<ArgTs...>{});

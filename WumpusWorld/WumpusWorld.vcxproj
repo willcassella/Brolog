@@ -133,10 +133,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="include\WGTest.cpp" />
-    <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="include\main.cpp" />
+    <ClCompile Include="source\KnowledgeDB.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\KnowledgeDB.h" />
     <ClInclude Include="include\World.h" />
     <ClInclude Include="include\WorldGenerator.h" />
   </ItemGroup>

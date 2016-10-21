@@ -43,5 +43,8 @@
     <ClInclude Include="include\Brolog\Predicates\Math.h">
       <Filter>Predicates</Filter>
     </ClInclude>
+    <ClInclude Include="include\Brolog\Predicates\List.h">
+      <Filter>Predicates</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

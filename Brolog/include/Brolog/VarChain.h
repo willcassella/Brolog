@@ -30,6 +30,13 @@ namespace brolog
 			: _unified(false)
 		{
 		}
+		~StoredVarChainElement()
+		{
+			if (_unified)
+			{
+				_value.~T();
+			}
+		}
 
 		///////////////////
 		///   Methods   ///
@@ -57,6 +64,7 @@ namespace brolog
 		{
 			assert(_unified);
 			_unified = false;
+			_value.~T();
 		}
 
 		//////////////////
@@ -189,51 +197,6 @@ namespace brolog
 
 		/* Array of vars that were originally unbound. */
 		std::vector<Var<T>*> _unbound;
-	};
-
-	template <typename T, char Name>
-	struct ConstantVarChainElement : VarChainElement<T, Name>
-	{
-		////////////////////////
-		///   Constructors   ///
-	public:
-
-		ConstantVarChainElement(const T& value)
-			: _value(value)
-		{
-		}
-
-		///////////////////
-		///   Methods   ///
-	public:
-
-		bool unified() const final override
-		{
-			return true;
-		}
-
-		const T& value() const final override
-		{
-			return _value;
-		}
-
-		void unify(const T& /*value*/) final override
-		{
-			// Constant elements may not be unified
-			assert(false);
-		}
-
-		void unbind() final override
-		{
-			// Constant elements may not be unbound
-			assert(false);
-		}
-
-		//////////////////
-		///   Fields   ///
-	private:
-
-		T _value;
 	};
 
 	namespace impl

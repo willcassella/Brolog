@@ -39,6 +39,20 @@ namespace brolog
 		{
 			static_cast<DataBaseElement<DBaseT, FactType>&>(dataBase).instances.insert(std::make_tuple(std::forward<ArgTs>(values)...));
 		}
+
+		/* Removes an instance of this fact from the database. */
+		template <typename DBaseT>
+		static void remove_instance(DBaseT& database, ArgTs ... values)
+		{
+			auto& instances = static_cast<DataBaseElement<DBaseT, FactType>&>(database).instances;
+			auto instance = std::make_tuple(std::forward<ArgTs>(values)...);
+
+			auto pos = instances.find(instance);
+			if (pos != instances.end())
+			{
+				instances.erase(pos);
+			}
+		}
 	};
 
 	template <typename DBase, typename Cookie, typename ... Ts>

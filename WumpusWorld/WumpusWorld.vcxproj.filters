@@ -11,10 +11,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\main.cpp">
+    <ClCompile Include="source\KnowledgeDB.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="include\WGTest.cpp">
+    <ClCompile Include="include\main.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -23,6 +23,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\World.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\KnowledgeDB.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

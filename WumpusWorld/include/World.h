@@ -6,67 +6,83 @@
 #include <set>
 #include <cmath>
 
-namespace TileObservations
+using TileObsT = unsigned;
+
+namespace TileObs
 {
-	constexpr unsigned NONE = 0;
-	constexpr unsigned BREEZE = (1 << 0);
-	constexpr unsigned STENCH = (1 << 1);
-	constexpr unsigned BUMP = (1 << 2);
-	constexpr unsigned GLIMMER = (1 << 3);
-	constexpr unsigned PIT_DEATH = (1 << 4);
-	constexpr unsigned WUMPUS_DEATH = (1 << 5);
+	constexpr TileObsT NONE = 0;
+	constexpr TileObsT BREEZE = (1 << 0);
+	constexpr TileObsT STENCH = (1 << 1);
+	constexpr TileObsT BUMP = (1 << 2);
+	constexpr TileObsT GLIMMER = (1 << 3);
+	constexpr TileObsT PIT_DEATH = (1 << 4);
+	constexpr TileObsT WUMPUS_DEATH = (1 << 5);
 }
 
 struct Coordinate
 {
+	////////////////////////
+	///   Constructors   ///
+public:
+
+	Coordinate()
+		: x(0), y(0)
+	{
+	}
+	Coordinate(int x, int y)
+		: x(x), y(y)
+	{
+	}
+
+	//////////////////
+	///   Fields   ///
+public:
+
 	int x;
 	int y;
 
-	Coordinate above() {
-		Coordinate temp;
-		temp.x = x;
-		temp.y = y + 1;
-		return temp;
+	///////////////////
+	///   Methods   ///
+public:
+
+	Coordinate above() const
+	{
+		return Coordinate{ x, y + 1 };
 	}
 
-	Coordinate below() {
-		Coordinate temp;
-		temp.x = x;
-		temp.y = y - 1;
-		return temp;
+	Coordinate below() const
+	{
+		return Coordinate{ x, y - 1 };
 	}
 
-	Coordinate left() {
-		Coordinate temp;
-		temp.x = x - 1;
-		temp.y = y;
-		return temp;
+	Coordinate left() const
+	{
+		return Coordinate{ x - 1, y };
 	}
 
-	Coordinate right() {
-		Coordinate temp;
-		temp.x = x + 1;
-		temp.y = y;
-		return temp;
+	Coordinate right() const
+	{
+		return Coordinate{ x + 1, y };
 	}
 };
 
-bool operator==(const Coordinate& lhs, const Coordinate& rhs)
+inline bool operator==(const Coordinate& lhs, const Coordinate& rhs)
 {
 	return lhs.x == rhs.x && lhs.y == rhs.y;
 }
-bool operator<(const Coordinate& lhs, const Coordinate& rhs)
-{
-	return (lhs.x < rhs.x && lhs.y < rhs.y);
-}
-bool operator!=(const Coordinate& lhs, const Coordinate& rhs)
+inline bool operator!=(const Coordinate& lhs, const Coordinate& rhs)
 {
 	return !(lhs == rhs);
 }
 
-class World {
+class World
+{
+	////////////////////////
+	///   Constructors   ///
 public:
-	World(int size, float pWumpus, float pPit, float pObs) {
+
+	World(int size, float pWumpus, float pPit, float pObs)
+	{
 		srand((int)time(NULL));
 		std::vector<Coordinate> usedCoords;
 		int numTiles = size * size;
@@ -110,23 +126,30 @@ public:
 		player_start = temp;
 	}
 
-	unsigned getInfo(Coordinate youAreHere) {
-		unsigned Obs = TileObservations::NONE;
+	TileObsT getInfo(Coordinate youAreHere)
+	{
+		TileObsT percepts = TileObs::NONE;
 		if (youAreHere == gold_tile)
 		{
-			Obs = TileObservations::GLIMMER;
+			percepts = TileObs::GLIMMER;
 		}
 
-		unsigned percepts = search<TileObservations::STENCH>(youAreHere, wumpus_tiles) | search<TileObservations::BREEZE>(youAreHere, pit_tiles) | checkCurrent<TileObservations::BUMP>(youAreHere, obstacle_tiles)
-			| checkCurrent<TileObservations::WUMPUS_DEATH>(youAreHere, wumpus_tiles) | checkCurrent<TileObservations::PIT_DEATH>(youAreHere, pit_tiles) | Obs;
-		if (percepts && TileObservations::STENCH != 0)
+		percepts |=
+			search<TileObs::STENCH>(youAreHere, wumpus_tiles)
+			| search<TileObs::BREEZE>(youAreHere, pit_tiles)
+			| checkCurrent<TileObs::BUMP>(youAreHere, obstacle_tiles)
+			| checkCurrent<TileObs::WUMPUS_DEATH>(youAreHere, wumpus_tiles)
+			| checkCurrent<TileObs::PIT_DEATH>(youAreHere, pit_tiles);
+
+		if ((percepts & TileObs::STENCH) != 0)
 		{
 			reported_stenches.push_back(youAreHere);
 		}
+
 		return percepts;
 	}
 
-	template <unsigned Obs>
+	template <TileObsT Obs>
 	static unsigned search(Coordinate coord, const std::vector<Coordinate>& tiles)
 	{
 		auto result = std::find(tiles.begin(), tiles.end(), coord.above());
@@ -156,7 +179,7 @@ public:
 		return 0;
 	}
 
-	template <unsigned Obs>
+	template <TileObsT Obs>
 	static unsigned checkCurrent(Coordinate coord, const std::vector<Coordinate>& tiles)
 	{
 		auto result = std::find(tiles.begin(), tiles.end(), coord);
@@ -164,20 +187,21 @@ public:
 			return Obs;
 		}
 
-		return 0;
+		return TileObs::NONE;
 	}
 
-	Coordinate get_start()
+	Coordinate get_start() const
 	{
 		return player_start;
 	}
 
-	Coordinate get_gold()
+	Coordinate get_gold() const
 	{
 		return gold_tile;
 	}
 
 private:
+
 	std::vector<Coordinate> wumpus_tiles;
 	std::vector<Coordinate> pit_tiles;
 	std::vector<Coordinate> obstacle_tiles;
@@ -185,17 +209,13 @@ private:
 	Coordinate gold_tile;
 	Coordinate player_start;
 
-	Coordinate randomCoord(int size)
-	{
-		Coordinate temp;
-		temp.x = randomInt(size);
-		temp.y = randomInt(size);
-		return temp;
-	}
-
-	int randomInt(int max)
+	static int randomInt(int max)
 	{
 		return rand() % max;
 	}
 
+	static Coordinate randomCoord(int size)
+	{
+		return Coordinate{ randomInt(size), randomInt(size) };
+	}
 };
