@@ -119,7 +119,10 @@ public:
 
 		unsigned percepts = search<TileObservations::STENCH>(youAreHere, wumpus_tiles) | search<TileObservations::BREEZE>(youAreHere, pit_tiles) | checkCurrent<TileObservations::BUMP>(youAreHere, obstacle_tiles)
 			| checkCurrent<TileObservations::WUMPUS_DEATH>(youAreHere, wumpus_tiles) | checkCurrent<TileObservations::PIT_DEATH>(youAreHere, pit_tiles) | Obs;
-
+		if (percepts && TileObservations::STENCH != 0)
+		{
+			reported_stenches.push_back(youAreHere);
+		}
 		return percepts;
 	}
 
