@@ -80,9 +80,8 @@ class World
 	////////////////////////
 	///   Constructors   ///
 public:
-
-	World(int size, float pWumpus, float pPit, float pObs)
-	{
+	World(int size, float pWumpus, float pPit, float pObs) {
+		worldSize = size;
 		srand((int)time(NULL));
 		std::vector<Coordinate> usedCoords;
 		int numTiles = size * size;
@@ -200,6 +199,77 @@ public:
 		return gold_tile;
 	}
 
+	bool shootArrow(Coordinate youAreHere, int direction)
+	{
+		//0 = left, 1 = up, 2 = right, 3 = down
+		Coordinate temp = youAreHere;
+		switch (direction)
+		{
+		case 0:
+			for (int i = youAreHere.x; i >= 0; i--) {
+				temp.x = i;
+				if (isWumpus(temp)) {
+					return true;
+				}
+				if (isObstacle(temp)) {
+					return false;
+				}
+			}
+			break;
+		case 1:
+			for (int i = youAreHere.y; i < worldSize; i++) {
+				temp.x = i;
+				if (isWumpus(temp)) {
+					return true;
+				}
+				if (isObstacle(temp)) {
+					return false;
+				}
+			}
+			break;
+		case 2:
+			for (int i = youAreHere.x; i < worldSize; i--) {
+				temp.x = i;
+				if (isWumpus(temp)) {
+					return true;
+				}
+				if (isObstacle(temp)) {
+					return false;
+				}
+			}
+			break;
+		case 3:
+			for (int i = youAreHere.y; i >= 0; i--) {
+				temp.x = i;
+				if (isWumpus(temp)) {
+					return true;
+				}
+				if (isObstacle(temp)) {
+					return false;
+				}
+			}
+			break;
+		default:
+			break;
+		}
+		return false;
+	}
+	bool isWumpus(Coordinate youAreHere)
+	{
+		if ((getInfo(youAreHere) & TileObservations::WUMPUS_DEATH) != 0) {
+			return true;
+		}
+		return false;
+		
+	}
+	bool isObstacle(Coordinate youAreHere)
+	{
+		if ((getInfo(youAreHere) & TileObservations::BUMP) != 0) {
+			return true;
+		}
+		return false;
+	}
+
 private:
 
 	std::vector<Coordinate> wumpus_tiles;
@@ -208,6 +278,7 @@ private:
 	std::vector<Coordinate> reported_stenches;
 	Coordinate gold_tile;
 	Coordinate player_start;
+	int worldSize;
 
 	static int randomInt(int max)
 	{
