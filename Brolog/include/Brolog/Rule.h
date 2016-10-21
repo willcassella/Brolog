@@ -15,19 +15,26 @@ namespace brolog
 		using ArgTuple = std::tuple<Var<ArgTs>*...>;
 
 		template <typename DBaseT>
-		using Instance = void(*)(const DBaseT& dataBase, ArgTuple& args, const ContinueFn& next);
+		using Instance = bool(*)(const DBaseT& dataBase, ArgTuple& args, const ContinueFn& next);
 
 		template <typename DBaseT, typename ContinueFnT>
-		static void satisfy(const DBaseT& dataBase, ArgTuple& args, const ContinueFnT& next)
+		static bool satisfy(const DBaseT& dataBase, ArgTuple& args, const ContinueFnT& next)
 		{
 			// Enumerate all instances of this rule in the database
 			const auto& instances = static_cast<const DataBaseElement<DBaseT, RuleType>&>(dataBase).instances;
-			auto control = EControl::CONTINUE;
 
-			for (auto rule = instances.begin(); rule != instances.end() && control != EControl::BREAK; ++rule)
+			// If all the arguments to this rule were initally unified, we only have to find the first clause that works
+			bool initiallyUnified = arg_pack_unified<0>(args);
+
+			// Stores whether this rule was ever satisfied
+			bool satisfied = false;
+
+			for (auto rule = instances.begin(); rule != instances.end() && !(initiallyUnified && satisfied); ++rule)
 			{
-				(*rule)(dataBase, args, next);
+				satisfied |= (*rule)(dataBase, args, next);
 			}
+
+			return satisfied;
 		}
 
 		/* Creates a new instance of this fact and inserts it into the database. */
@@ -62,7 +69,7 @@ namespace brolog
 		using Type = TypeT;
 
 		template <typename DBaseT>
-		static void satisfy(const DBaseT& dataBase, typename TypeT::ArgTuple& args, const ContinueFn& next)
+		static bool satisfy(const DBaseT& dataBase, typename TypeT::ArgTuple& args, const ContinueFn& next)
 		{
 			// Create an initial var chain
 			auto varChain = create_var_chain<VarChainRoot, ReferencedVarChainElement>(typename TypeT::ArgTypes{}, Params{});
@@ -71,11 +78,11 @@ namespace brolog
 			if (!fill_initial_arg_chain<0>(typename TypeT::ArgTypes{}, Params{}, args, varChain))
 			{
 				// Args don't work, backtrack immediately
-				return;
+				return false;
 			}
 
 			// Satisfy the first predicate
-			satisfy_predicate(tmp::type_list<PredicateTs...>{}, dataBase, next, varChain);
+			return satisfy_predicate(tmp::type_list<PredicateTs...>{}, dataBase, next, varChain);
 		}
 
 	private:
@@ -87,7 +94,7 @@ namespace brolog
 		typename DBaseT,
 		typename ContinueFnT,
 		typename ... OuterVarChainTs>
-		static void satisfy_predicate(
+		static bool satisfy_predicate(
 			tmp::type_list<Satisfy<PredT, ArgNs...>, SatTs...>,
 			const DBaseT& dataBase,
 			const ContinueFnT& next,
@@ -101,9 +108,9 @@ namespace brolog
 			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains..., localVarChain);
 
 			// Recursively satisfy predicates
-			PredT::satisfy(dataBase, argPack,
+			return PredT::satisfy(dataBase, argPack,
 				[&]() {
-					satisfy_predicate(tmp::type_list<SatTs...>{}, dataBase, next, outerVarChains..., localVarChain);
+					return satisfy_predicate(tmp::type_list<SatTs...>{}, dataBase, next, outerVarChains..., localVarChain);
 			});
 		}
 
@@ -114,7 +121,7 @@ namespace brolog
 		typename DBaseT,
 		typename ContinueFnT,
 		typename ... OuterVarChainTs>
-		static void satisfy_predicate(
+		static bool satisfy_predicate(
 			tmp::type_list<NotSatisfy<PredT, ArgNs...>, SatTs...>,
 			const DBaseT& database,
 			const ContinueFnT& next,
@@ -127,25 +134,28 @@ namespace brolog
 			PredT::satisfy(database, argPack,
 				[&]() {
 				satisfied = true;
+				return true;
 			});
 
-			if (!satisfied)
+			if (satisfied)
 			{
-				satisfy_predicate(tmp::type_list<SatTs...>{}, database, next, outerVarChains...);
+				return false;
 			}
+
+			return satisfy_predicate(tmp::type_list<SatTs...>{}, database, next, outerVarChains...);
 		}
 
 		template <
 		typename DBaseT,
 		typename ContinueFnT,
 		typename ... OuterVarChainTs>
-		static void satisfy_predicate(
+		static bool satisfy_predicate(
 			tmp::type_list<>,
 			const DBaseT& /*dataBase*/,
 			const ContinueFnT& next,
 			OuterVarChainTs& ... /*outerVarCHains*/)
 		{
-			next();
+			return next();
 		}
 	};
 

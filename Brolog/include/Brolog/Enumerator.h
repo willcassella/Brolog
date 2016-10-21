@@ -49,5 +49,5 @@ namespace brolog
 		InvokerFn* _invoker;
 	};
 
-	using ContinueFn = Function<void()>;
+	using ContinueFn = Function<bool()>;
 }

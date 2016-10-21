@@ -37,6 +37,9 @@ using FDeadWumpus = brolog::FactType<struct DeadWumpus, int, int>;
 /* Takes a pair of X and Y coordinates (X1, Y1, X2, Y2), and resolves if they are neighbors. */
 using RNeighbor = brolog::RuleType<struct CNeighbor, int, int, int, int>;
 
+/* The X and Y coordinates of all tiles that were visited and are safe to revisit. */
+using RSafeVisited = brolog::RuleType<struct CSafeVisited, int, int>;
+
 /* The X and Y coordinates of all tiles that the agent has been too in which nothing was observed. */
 using REmpty = brolog::RuleType<struct CEmpty, int, int>;
 
@@ -85,6 +88,7 @@ using WumpusWorldDB = brolog::DataBase<
 	FDeadWumpus,
 
 	RNeighbor,
+	RSafeVisited,
 	REmpty,
 	RNoBreeze,
 	RNoStench,
@@ -114,6 +118,21 @@ void add_neighbor_rules(WumpusWorldDB& database)
 
 	database.insert_rule<RNeighbor, Params<'X', 'Y', 'X', 'B'>,
 		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>>(); // B is Y - 1
+}
+
+void add_safe_visited_rules(WumpusWorldDB& database)
+{
+	using namespace brolog;
+
+	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
+		Satisfy<FVisited, 'X', 'Y'>,
+		NotSatisfy<FPitDeath, 'X', 'Y'>,
+		NotSatisfy<FWumpusDeath, 'X', 'Y'>>();
+
+	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
+		Satisfy<FVisited, 'X', 'Y'>,
+		NotSatisfy<FPitDeath, 'X', 'Y'>,
+		Satisfy<FDeadWumpus, 'X', 'Y'>>();
 }
 
 void add_empty_rules(WumpusWorldDB& database)
@@ -166,25 +185,10 @@ void add_not_pit_rules(WumpusWorldDB& database)
 		Satisfy<FVisited, 'X', 'Y'>,
 		NotSatisfy<FPitDeath, 'X', 'Y'>>();
 
-	// There is not a pit on the tile if there is not a breeze on the left
+	// There is not a pit on a tile if there is not a breeze on its neighbor
 	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<RNoBreeze, 'L', 'Y'>,
-		Satisfy<ConstantSum<int, 1>, 'X', 'L'>>(); // X is L + 1
-
-	// There is not a pit on the tile if there is not a breeze to the right
-	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<RNoBreeze, 'R', 'Y'>,
-		Satisfy<ConstantSum<int, -1>, 'X', 'R'>>(); // X is R - 1
-
-	// There is not a pit on the tile if there is not a breeze below
-	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<RNoBreeze, 'X', 'B'>,
-		Satisfy<ConstantSum<int, 1>, 'Y', 'B'>>(); // Y is B + 1
-
-	// There is not a pit on the tile if there is not a breeze above
-	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<RNoBreeze, 'X', 'A'>,
-		Satisfy<ConstantSum<int, -1>, 'Y', 'A'>>(); // Y is A - 1
+		Satisfy<RNoBreeze, 'A', 'B'>,
+		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>>();
 }
 
 void add_pit_rules(WumpusWorldDB& database)
@@ -253,25 +257,10 @@ void add_not_wumpus_rules(WumpusWorldDB& database)
 	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
 		Satisfy<RPit, 'X', 'Y'>>();
 
-	// There is not a wumpus on the tile if there is not a stench to the left
+	// There is not a wumpus on the tile if there is not a stench on one of its neighbors
 	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<RNoStench, 'L', 'Y'>,
-		Satisfy<ConstantSum<int, 1>, 'X', 'L'>>();
-
-	// There is not a wumpus on the tile if there is not a stench to the right
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<RNoStench, 'R', 'Y'>,
-		Satisfy<ConstantSum<int, -1>, 'X', 'R'>>();
-
-	// There is not a wumpus on the tile if there is not a stench below
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<RNoStench, 'X', 'B'>,
-		Satisfy<ConstantSum<int, 1>, 'Y', 'B'>>();
-
-	// There is not a wumpus on the tile if there is not a stench above
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<RNoStench, 'X', 'A'>,
-		Satisfy<ConstantSum<int, -1>, 'Y', 'A'>>();
+		Satisfy<RNoStench, 'A', 'B'>,
+		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>>();
 }
 
 void add_wumpus_rules(WumpusWorldDB& database)
@@ -334,28 +323,10 @@ void add_reachable_rules(WumpusWorldDB& database)
 	using namespace brolog;
 
 	database.insert_rule<RReachable, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'L', 'Y'>, // There is a visited tile to the left of the tile
-		Satisfy<ConstantSum<int, 1>, 'X', 'L'>, // X is L + 1
-		NotSatisfy<FObstacle, 'L', 'Y'>, // The visited tile is does not contain an obstacle
-		Satisfy<RSafe, 'L', 'Y'>>(); // The visited tile is safe
-
-	database.insert_rule<RReachable, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'R', 'Y'>, // There is a visited tile to the right of the tile
-		Satisfy<ConstantSum<int, -1>, 'X', 'R'>, // X is R - 1
-		NotSatisfy<FObstacle, 'R', 'Y'>, // The visited tile does not contain an obstacle
-		Satisfy<RSafe, 'R', 'Y'>>(); // The visited tile is safe
-
-	database.insert_rule<RReachable, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'B'>, // There is a visited tile below the tile
-		Satisfy<ConstantSum<int, 1>, 'Y', 'B'>, // Y is B + 1
-		NotSatisfy<FObstacle, 'X', 'B'>, // The visited tile does not contain an obstacle
-		Satisfy<RSafe, 'X', 'B'>>(); // The visited tile is safe
-
-	database.insert_rule<RReachable, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'A'>, // There is a visited tile above the tile
-		Satisfy<ConstantSum<int, -1>, 'Y', 'A'>, // Y is A - 1
-		NotSatisfy<FObstacle, 'X', 'A'>, // The visited tile does not contain an obstacle
-		Satisfy<RSafe, 'X', 'A'>>(); // The visited tile is safe
+		Satisfy<RSafe, 'A', 'B'>,
+		NotSatisfy<FObstacle, 'A', 'B'>,
+		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>,
+		NotSatisfy<FObstacle, 'X', 'Y'>>();
 }
 
 void add_safe_reachable_rules(WumpusWorldDB& database)
@@ -442,7 +413,7 @@ int main()
 	database.insert_fact<FVisited>(0, 2);
 	database.insert_fact<FBreeze>(0, 2);
 
-	auto query = database.satisfy<RNeighbor>(Unknown<'X'>(), Unknown<'Y'>(), 0, 0);
+	auto query = database.satisfy<RMaybeSafeReachableUnexplored>(Unknown<'X'>(), Unknown<'Y'>());
 
 	std::cout << "Running..." << std::endl;
 

@@ -17,17 +17,20 @@ namespace brolog
 		using ArgTypes = tmp::type_list<ArgTs...>;
 
 		template <typename DBaseT, typename ContinueFnT>
-		static void satisfy(const DBaseT& dataBase, const std::tuple<Var<ArgTs>*...>& args, const ContinueFnT& next)
+		static bool satisfy(const DBaseT& dataBase, const std::tuple<Var<ArgTs>*...>& args, const ContinueFnT& next)
 		{
 			const auto& instances = static_cast<const DataBaseElement<DBaseT, FactType>&>(dataBase).instances;
-			auto control = EControl::CONTINUE;
+			bool initiallyUnified = arg_pack_unified<0>(args);
+			bool satisfied = false;
 
-			// While we haven't run out of facts, and the enumerator wants us to continue
-			for (auto fact = instances.begin(); fact != instances.end() && control != EControl::BREAK; ++fact)
+			// While we haven't run out of facts, and we haven't found a fact that matches the arguments (if it the arguments were initally unified)
+			for (auto fact = instances.begin(); fact != instances.end() && !(initiallyUnified && satisfied); ++fact)
 			{
 				// Unify the argumentss
-				unify_arg_pack(args, *fact, next);
+				satisfied |= unify_arg_pack(args, *fact, next);
 			}
+
+			return satisfied;
 		}
 
 		/* Creates a new instance of this fact and inserts it into the database. */

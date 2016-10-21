@@ -64,8 +64,9 @@ namespace brolog
 			return [=](const auto& out) mutable {
 				auto argPack = create_arg_pack(typename TermT::ArgTypes{}, nameList, varChain);
 
-				auto end = [&]() {
+				auto end = [&]() -> bool {
 					output_unknowns<0>(tmp::char_list<>{}, tmp::type_list<ArgTs...>{}, out, argPack);
+					return true;
 				};
 
 				TermT::satisfy(*this, argPack, end);
