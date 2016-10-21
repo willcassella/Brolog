@@ -199,6 +199,11 @@ public:
 		return gold_tile;
 	}
 
+	int get_size() const
+	{
+		return worldSize;
+	}
+
 	bool shootArrow(Coordinate youAreHere, int direction)
 	{
 		//0 = left, 1 = up, 2 = right, 3 = down
@@ -256,15 +261,15 @@ public:
 	}
 	bool isWumpus(Coordinate youAreHere)
 	{
-		if ((getInfo(youAreHere) & TileObservations::WUMPUS_DEATH) != 0) {
+		if ((getInfo(youAreHere) & TileObs::WUMPUS_DEATH) != 0) {
 			return true;
 		}
 		return false;
-		
+
 	}
 	bool isObstacle(Coordinate youAreHere)
 	{
-		if ((getInfo(youAreHere) & TileObservations::BUMP) != 0) {
+		if ((getInfo(youAreHere) & TileObs::BUMP) != 0) {
 			return true;
 		}
 		return false;
