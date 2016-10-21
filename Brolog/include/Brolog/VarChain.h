@@ -12,7 +12,6 @@ namespace brolog
 	template <char N>
 	struct VarName
 	{
-		static constexpr char VAR_NAME = N;
 	};
 
 	template <typename T, char N>

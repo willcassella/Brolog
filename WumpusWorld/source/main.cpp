@@ -1,8 +1,8 @@
 // main.cpp
 
-#include "../include/Brolog/Brolog.h"
-#include "../include/Brolog/Predicates/Math.h"
 #include <iostream>
+#include <Brolog/Brolog.h>
+#include <Brolog/Predicates/Math.h>
 
 /////////////////
 ///   Facts   ///
@@ -184,33 +184,46 @@ void add_not_wumpus_rules(WumpusDB& database)
 
 void add_wumpus_rules(WumpusDB& database)
 {
-	//using namespace brolog;
-	//database.insert_rule<RWumpus, Params<'X', 'Y'>,
-	//	Satisfy<FStench, 'L', 'Y'>, // There is a stench to the left
-	//	Satisfy<ConstantSum<int, 1>, 'X', 'L'>, // X is L + 1
-	//	Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
-	//	Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
-	//	Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
-	//	Satisfy<RNotWumpus, '', 'A'>>();
+	using namespace brolog;
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'S', 'Y'>, // There is a stench to the left of the tile
+		Satisfy<ConstantSum<int, 1>, 'X', 'S'>, // X is S + 1
+		Satisfy<ConstantSum<int, -1>, 'L', 'S'>, // L is S - 1
+		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
+		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
+		Satisfy<RNotWumpus, 'S', 'A'>, // There is not a wumpus above the stench
+		Satisfy<RNotWumpus, 'S', 'B'>, // There is not a wumpus below the stench
+		Satisfy<RNotWumpus, 'L', 'Y'>>(); // There is not a wumpus to the left of the stench
 
-	//database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-	//	Satisfy<FObstacle, 'X', 'Y'>>();
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'S', 'Y'>, // There is a stench to the right of the tile
+		Satisfy<ConstantSum<int, -1>, 'X', 'S'>, // X is S - 1
+		Satisfy<ConstantSum<int, 1>, 'M', 'R'>, // R is S + 1
+		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
+		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
+		Satisfy<RNotWumpus, 'S', 'A'>, // There is not a wumpus above the stench
+		Satisfy<RNotWumpus, 'S', 'B'>, // There is not a wumpus below the stench
+		Satisfy<RNotWumpus, 'R', 'Y'>>(); // There is not a wumpus to the right of the stench
 
-	//database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-	//	Satisfy<FNotStench, 'X', 'A'>,
-	//	Satisfy<ConstantSum<int, 1>, 'Y', 'A'>>();
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'X', 'S'>, // There is a stench below the tile
+		Satisfy<ConstantSum<int, 1>, 'Y', 'S'>, // Y is S + 1
+		Satisfy<ConstantSum<int, -1>, 'B', 'S'>, // B is S - 1
+		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
+		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
+		Satisfy<RNotWumpus, 'X', 'B'>, // There is not a wumpus below the stench
+		Satisfy<RNotWumpus, 'L', 'S'>, // There is not a wumpus to the left of the stench
+		Satisfy<RNotWumpus, 'R', 'S'>>(); // There is not a wumpus to the right of the stench
 
-	//database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-	//	Satisfy<FNotStench, 'X', 'A'>,
-	//	Satisfy<ConstantSum<int, -1>, 'Y', 'A'>>();
-
-	//database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-	//	Satisfy<FNotStench, 'A', 'Y'>,
-	//	Satisfy<ConstantSum<int, 1>, 'X', 'A'>>();
-
-	//database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-	//	Satisfy<FNotStench, 'A', 'Y'>,
-	//	Satisfy<ConstantSum<int, -1>, 'X', 'A'>>();
+	database.insert_rule<RWumpus, Params<'X', 'Y'>,
+		Satisfy<FStench, 'X', 'S'>, // There is a stench above the tile
+		Satisfy<ConstantSum<int, -1>, 'Y', 'S'>, // Y is S - 1
+		Satisfy<ConstantSum<int, 1>, 'A', 'S'>, // A is S + 1
+		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
+		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
+		Satisfy<RNotWumpus, 'X', 'A'>, // There is not a wumpus above the stench
+		Satisfy<RNotWumpus, 'L', 'S'>, // There is not a wumpus to the left of the stench
+		Satisfy<RNotWumpus, 'R', 'S'>>(); // There is not a wumpus to the right of the stench
 }
 
 void add_safe_tile_rules(WumpusDB& database)
@@ -242,6 +255,7 @@ int main()
 	add_no_stench_rules(database);
 	add_not_pit_rules(database);
 	add_not_wumpus_rules(database);
+	add_wumpus_rules(database);
 
 	database.insert_fact<FObstacle>(-1, 0);
 	database.insert_fact<FObstacle>(-1, 1);
@@ -250,6 +264,7 @@ int main()
 	database.insert_fact<FEmpty>(0, 0);
 
 	auto query = database.satisfy<RNotPit>(Unknown<'X'>(), Unknown<'Y'>());
+
 	query([](auto x, auto y)
 	{
 		std::cout << "X = " << x << ", Y = " << y << std::endl;
