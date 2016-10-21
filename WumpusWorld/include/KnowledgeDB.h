@@ -35,6 +35,27 @@ public:
 	 * If this returns 'false' and you have shot all wumpuses and still not found the gold, the world is impossible to solve. */
 	bool next_maybe_safe_unexplored(Coordinate& coords) const;
 
+	/* Returns whether the given tile is known to be visited. Used for debuggin. */
+	bool known_visited(const Coordinate& coords) const;
+
+	/* Returns whether the given tile is known to contian a stench. Used for debugging. */
+	bool known_stench(const Coordinate& coords) const;
+
+	/* Returns whether the given tile is known to contain a breeze. Used for debuggin. */
+	bool known_breeze(const Coordinate& coords) const;
+
+	/* Returns whether the given tile is known to contain an obstacle. Used for debuggin. */
+	bool known_obstacle(const Coordinate& coords) const;
+
+	/* Returns whether the given tile is known to contain a pit. Used for debugging. */
+	bool known_pit(const Coordinate& coords) const;
+
+	/* Returns whether the given tile is known to contain a wumpus. Used for debugging. */
+	bool known_wumpus(const Coordinate& coords) const;
+
+	/* Returns whether the given tile is known to contain a dead wumpus. Used for debugging. */
+	bool known_dead_wumpus(const Coordinate& coords) const;
+
 	//////////////////
 	///   Fields   ///
 private:

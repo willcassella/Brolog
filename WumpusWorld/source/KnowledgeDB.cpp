@@ -410,6 +410,12 @@ void KnowledgeDB::visited(const Coordinate& coord, TileObsT observations)
 		_data->database.insert_fact<FStench>(coord.x, coord.y);
 	}
 
+	// Add the glimmer fact, if observed
+	if ((observations & TileObs::GLIMMER) != 0)
+	{
+		_data->database.insert_fact<FGlimmer>(coord.x, coord.y);
+	}
+
 	// Add the obstacle fact, if observed
 	if ((observations & TileObs::BUMP) != 0)
 	{
@@ -482,4 +488,39 @@ bool KnowledgeDB::next_maybe_safe_unexplored(Coordinate& coords) const
 	});
 
 	return found;
+}
+
+bool KnowledgeDB::known_visited(const Coordinate& coords) const
+{
+	return _data->database.satisfy<FVisited>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_stench(const Coordinate& coords) const
+{
+	return _data->database.satisfy<FStench>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_breeze(const Coordinate& coords) const
+{
+	return _data->database.satisfy<FBreeze>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_obstacle(const Coordinate& coords) const
+{
+	return _data->database.satisfy<FObstacle>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_pit(const Coordinate& coords) const
+{
+	return _data->database.satisfy<RPit>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_wumpus(const Coordinate& coords) const
+{
+	return _data->database.satisfy<RWumpus>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_dead_wumpus(const Coordinate& coords) const
+{
+	return _data->database.satisfy<FDeadWumpus>(coords.x, coords.y)([]() {});
 }

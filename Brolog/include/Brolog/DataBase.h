@@ -67,7 +67,7 @@ namespace brolog
 			fill_user_var_chain<char(0)>(varChain, args...);
 			auto nameList = get_user_var_chain_name_list<char(0)>(tmp::char_list<>{}, tmp::type_list<ArgTs...>{});
 
-			return [=](const auto& out) mutable {
+			return [=](const auto& out) mutable -> bool {
 				auto argPack = create_arg_pack(typename TermT::ArgTypes{}, nameList, varChain);
 
 				auto end = [&]() -> bool {
@@ -75,7 +75,7 @@ namespace brolog
 					return true;
 				};
 
-				TermT::satisfy(*this, argPack, end);
+				return TermT::satisfy(*this, argPack, end);
 			};
 		}
 	};
