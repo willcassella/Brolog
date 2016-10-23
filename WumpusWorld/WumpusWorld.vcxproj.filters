@@ -19,9 +19,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\WorldGenerator.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="include\World.h">
       <Filter>include</Filter>
     </ClInclude>

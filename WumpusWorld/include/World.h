@@ -1,23 +1,11 @@
 //World.h
 #pragma once
+
+#include <cmath>
+#include <ctime>
+#include <cassert>
 #include <vector>
 #include <algorithm>
-#include <ctime>
-#include <set>
-#include <cmath>
-
-using TileObsT = unsigned;
-
-namespace TileObs
-{
-	constexpr TileObsT NONE = 0;
-	constexpr TileObsT BREEZE = (1 << 0);
-	constexpr TileObsT STENCH = (1 << 1);
-	constexpr TileObsT BUMP = (1 << 2);
-	constexpr TileObsT GLIMMER = (1 << 3);
-	constexpr TileObsT PIT_DEATH = (1 << 4);
-	constexpr TileObsT WUMPUS_DEATH = (1 << 5);
-}
 
 struct Coordinate
 {
@@ -34,264 +22,396 @@ public:
 	{
 	}
 
+	/* Randomly generates a coordinate between (0, 0) and (max, max).
+	 * It will not pick a coordinate within the given list of disallowed coordinates. */
+	static Coordinate random(int max, const std::vector<Coordinate>& disallowed)
+	{
+		assert(disallowed.size() < max * max);
+
+		Coordinate result;
+
+		do
+		{
+			result = { rand() % max, rand() % max };
+		} while (std::find(disallowed.begin(), disallowed.end(), result) != disallowed.end());
+
+		return result;
+	}
+
+	//////////////////s/
+	///   Methods   ///
+public:
+
+	/* Creates a coordinate one unit north of this tile. */
+	Coordinate north() const
+	{
+		return Coordinate{ x, y + 1 };
+	}
+
+	/* Creates a coordinate one unit south of this tile. */
+	Coordinate south() const
+	{
+		return Coordinate{ x, y - 1 };
+	}
+
+	/* Creates a coordinate one unit east of this tile. */
+	Coordinate east() const
+	{
+		return Coordinate{ x - 1, y };
+	}
+
+	/* Creates a coordinate one unit west of this tile. */
+	Coordinate west() const
+	{
+		return Coordinate{ x + 1, y };
+	}
+
+	/////////////////////
+	///   Operators   ///
+public:
+
+	bool operator==(const Coordinate& rhs) const
+	{
+		return x == rhs.x && y == rhs.y;
+	}
+	bool operator!=(const Coordinate& rhs) const
+	{
+		return !(*this == rhs);
+	}
+
 	//////////////////
 	///   Fields   ///
 public:
 
 	int x;
 	int y;
-
-	///////////////////
-	///   Methods   ///
-public:
-
-	Coordinate above() const
-	{
-		return Coordinate{ x, y + 1 };
-	}
-
-	Coordinate below() const
-	{
-		return Coordinate{ x, y - 1 };
-	}
-
-	Coordinate left() const
-	{
-		return Coordinate{ x - 1, y };
-	}
-
-	Coordinate right() const
-	{
-		return Coordinate{ x + 1, y };
-	}
 };
 
-inline bool operator==(const Coordinate& lhs, const Coordinate& rhs)
+using TilePercepts_t = int;
+namespace TilePercepts
 {
-	return lhs.x == rhs.x && lhs.y == rhs.y;
+	enum
+	{
+		NONE = 0,
+		BUMP = (1 << 0),
+		BREEZE = (1 << 2),
+		STENCH = (1 << 3),
+		GLIMMER = (1 << 3),
+		PIT_DEATH = (1 << 4),
+		WUMPUS_DEATH = (1 << 5)
+	};
 }
-inline bool operator!=(const Coordinate& lhs, const Coordinate& rhs)
+
+using Direction_t = int;
+namespace Direction
 {
-	return !(lhs == rhs);
+	enum
+	{
+		NORTH = (1 << 0),
+		SOUTH = (1 << 1),
+		EAST = (1 << 2),
+		WEST = (1 << 3)
+	};
 }
+
+struct ShootArrowResult
+{
+	//////////////////
+	///   Fields   ///
+public:
+
+	/* Whether the arrow killed a wumpus. */
+	bool hit = false;
+
+	/* If the arrow killed a wumpus, if we can remove the stench on that wumpus' tile. */
+	bool invalidated_self_stench = false;
+
+	/* If the arrow killed a wumpus, the tiles surrounding the wumpus's tile we can remove. */
+	Direction_t invalidated_stenches = 0;
+};
 
 class World
 {
 	////////////////////////
 	///   Constructors   ///
 public:
-	World(int size, float pWumpus, float pPit, float pObs) {
-		worldSize = size;
-		srand((int)time(NULL));
+
+	/* Initializes a world with the size (all worlds are square), probability of spawning a wumpus, probability of spawning
+	 * a pit, and probability of spawning an obstacle. */
+	World(int size, float pWumpus, float pPit, float pObs)
+		: world_size(size)
+	{
+		// Seed the 'rand' function with the current time
+		srand(static_cast<int>(time(nullptr)));
+
+		// Calculate the total number of all types of tiles (given their probablilities)
+		const int numTiles = size * size;
+		const int numWumps = (int)floor(pWumpus * numTiles);
+		const int numPits = (int)floor(pPit * numTiles);
+		const int numObs = (int)floor(pObs * numTiles);
+
+		// Make sure we won't run out of tiles
+		assert(numWumps + numPits + numObs + 1 < numTiles);
+
+		// Stores all currently used coordinates
 		std::vector<Coordinate> usedCoords;
-		int numTiles = size * size;
-		int numWumps = (int)floor(pWumpus * numTiles);
-		int numPits = (int)floor(pPit * numTiles);
-		int numObs = (int)floor(pObs * numTiles);
+		usedCoords.reserve(numWumps + numPits + numObs);
 
-		Coordinate temp = randomCoord(size);
-		for (int i = 0; i < numObs; i++) {
-			while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
-				temp = randomCoord(size);
-			}
-			usedCoords.push_back(temp);
-			obstacle_tiles.push_back(temp);
-		}
-
-		for (int i = 0; i < numWumps; i++) {
-			while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
-				temp = randomCoord(size);
-			}
-			usedCoords.push_back(temp);
-			wumpus_tiles.push_back(temp);
-		}
-
-		for (int i = 0; i < numPits; i++) {
-			while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
-				temp = randomCoord(size);
-			}
-			usedCoords.push_back(temp);
-			pit_tiles.push_back(temp);
-		}
-
-		while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
-			temp = randomCoord(size);
-		}
-		gold_tile = temp;
-		usedCoords.push_back(temp);
-		while (std::find(usedCoords.begin(), usedCoords.end(), temp) != usedCoords.end()) {
-			temp = randomCoord(size);
-		}
-		player_start = temp;
-	}
-
-	TileObsT getInfo(Coordinate youAreHere)
-	{
-		TileObsT percepts = TileObs::NONE;
-		if (youAreHere == gold_tile)
+		// Instantiate all obstacles
+		for (int i = 0; i < numObs; i++)
 		{
-			percepts = TileObs::GLIMMER;
+			auto coord = Coordinate::random(size, usedCoords);
+			usedCoords.push_back(coord);
+			obstacle_tiles.push_back(coord);
 		}
 
-		percepts |=
-			search<TileObs::STENCH>(youAreHere, wumpus_tiles)
-			| search<TileObs::BREEZE>(youAreHere, pit_tiles)
-			| checkCurrent<TileObs::BUMP>(youAreHere, obstacle_tiles)
-			| checkCurrent<TileObs::WUMPUS_DEATH>(youAreHere, wumpus_tiles)
-			| checkCurrent<TileObs::PIT_DEATH>(youAreHere, pit_tiles);
-
-		if ((percepts & TileObs::STENCH) != 0)
+		// Instantiate all wumpi
+		for (int i = 0; i < numWumps; i++)
 		{
-			reported_stenches.push_back(youAreHere);
+			auto coord = Coordinate::random(size, usedCoords);
+			usedCoords.push_back(coord);
+			wumpus_tiles.push_back(coord);
 		}
 
-		return percepts;
-	}
-
-	template <TileObsT Obs>
-	static unsigned search(Coordinate coord, const std::vector<Coordinate>& tiles)
-	{
-		auto result = std::find(tiles.begin(), tiles.end(), coord.above());
-		if (result != tiles.end())
+		// Instantiate all pits
+		for (int i = 0; i < numPits; i++)
 		{
-			return Obs;
+			auto coord = Coordinate::random(size, usedCoords);
+			usedCoords.push_back(coord);
+			pit_tiles.push_back(coord);
 		}
 
-		result = std::find(tiles.begin(), tiles.end(), coord.below());
-			if (result != tiles.end())
-			{
-				return Obs;
-			}
+		// Instantiate the gold
+		gold_tile = Coordinate::random(size, usedCoords);
+		usedCoords.push_back(gold_tile);
 
-		result = std::find(tiles.begin(), tiles.end(), coord.left());
-			if (result != tiles.end())
-			{
-				return Obs;
-			}
-
-		result = std::find(tiles.begin(), tiles.end(), coord.right());
-			if (result != tiles.end())
-			{
-				return Obs;
-			}
-
-		return 0;
+		// Set player start
+		player_start = Coordinate::random(size, usedCoords);
 	}
 
-	template <TileObsT Obs>
-	static unsigned checkCurrent(Coordinate coord, const std::vector<Coordinate>& tiles)
+	///////////////////
+	///   Methods   ///
+public:
+
+	/* Returns the size of the world. */
+	int get_size() const
 	{
-		auto result = std::find(tiles.begin(), tiles.end(), coord);
-		if (result != tiles.end()) {
-			return Obs;
-		}
-
-		return TileObs::NONE;
+		return world_size;
 	}
 
+	/* Returns the starting coordinates of the player. */
 	Coordinate get_start() const
 	{
 		return player_start;
 	}
 
-	Coordinate get_gold() const
+	/* Returns the percepts a player would experience in a tile, if they were to visit it. */
+	TilePercepts_t get_percepts(Coordinate coord) const
 	{
-		return gold_tile;
+		// If they're on an obstacle
+		if (has_obstacle(coord))
+		{
+			// They only feel a bump
+			return TilePercepts::BUMP;
+		}
+
+		TilePercepts_t percepts = TilePercepts::NONE;
+
+		// If there's gold on the tile
+		if (coord == gold_tile)
+		{
+			// They perceive a glimmer
+			percepts |= TilePercepts::GLIMMER;
+		}
+
+		// If there's a breeze on the tile
+		if (has_breeze(coord))
+		{
+			percepts |= TilePercepts::BREEZE;
+		}
+
+		// If there's a wumpus on the tile or any of the neighboring tiles
+		if (has_stench(coord))
+		{
+			percepts |= TilePercepts::STENCH;
+		}
+
+		// Report if the player died
+		if (has_wumpus(coord))
+		{
+			percepts |= TilePercepts::WUMPUS_DEATH;
+		}
+		else if (has_pit(coord))
+		{
+			percepts |= TilePercepts::PIT_DEATH;
+		}
+
+		return percepts;
 	}
 
-	int get_size() const
+	/* Returns whether  */
+	ShootArrowResult shoot_arrow(Coordinate coord, Direction_t direction)
 	{
-		return worldSize;
-	}
+		ShootArrowResult result;
+		int* component = nullptr;
+		int incr = 0;
 
-	bool shootArrow(Coordinate youAreHere, int direction)
-	{
-		//0 = left, 1 = up, 2 = right, 3 = down
-		Coordinate temp = youAreHere;
+		// Determine how to increment direction
 		switch (direction)
 		{
-		case 0:
-			for (int i = youAreHere.x; i >= 0; i--) {
-				temp.x = i;
-				if (isWumpus(temp)) {
-					return true;
-				}
-				if (isObstacle(temp)) {
-					return false;
-				}
-			}
+		case Direction::NORTH:
+			component = &coord.y;
+			incr = 1;
 			break;
-		case 1:
-			for (int i = youAreHere.y; i < worldSize; i++) {
-				temp.x = i;
-				if (isWumpus(temp)) {
-					return true;
-				}
-				if (isObstacle(temp)) {
-					return false;
-				}
-			}
+
+		case Direction::SOUTH:
+			component = &coord.y;
+			incr = -1;
 			break;
-		case 2:
-			for (int i = youAreHere.x; i < worldSize; i--) {
-				temp.x = i;
-				if (isWumpus(temp)) {
-					return true;
-				}
-				if (isObstacle(temp)) {
-					return false;
-				}
-			}
+
+		case Direction::EAST:
+			component = &coord.x;
+			incr = -1;
 			break;
-		case 3:
-			for (int i = youAreHere.y; i >= 0; i--) {
-				temp.x = i;
-				if (isWumpus(temp)) {
-					return true;
-				}
-				if (isObstacle(temp)) {
-					return false;
-				}
-			}
+
+		case Direction::WEST:
+			component = &coord.x;
+			incr = 1;
 			break;
+
 		default:
-			break;
+			// Invalid arguments
+			return result;
 		}
-		return false;
+
+		// Determine if the arrow hit a wumpus
+		for (; coord.x >= 0 && coord.x < world_size && coord.y >= 0 && coord.y < world_size; *component += incr)
+		{
+			if (has_wumpus(coord))
+			{
+				result.hit = true;
+				break;
+			}
+
+			if (has_obstacle(coord))
+			{
+				break;
+			}
+		}
+
+		// If we didn't hit a wumpus, just return
+		if (!result.hit)
+		{
+			return result;
+		}
+
+		// Figure out which stenches have been invalidated
+		auto iter = std::find(wumpus_tiles.begin(), wumpus_tiles.end(), coord);
+		wumpus_tiles.erase(iter);
+
+		// Determine which coordinates now longer have a stench
+		if (!has_stench(coord))
+		{
+			result.invalidated_self_stench = true;
+		}
+
+		if (!has_stench(coord.north()))
+		{
+			result.invalidated_stenches |= Direction::NORTH;
+		}
+
+		if (!has_stench(coord.south()))
+		{
+			result.invalidated_stenches |= Direction::SOUTH;
+		}
+
+		if (!has_stench(coord.east()))
+		{
+			result.invalidated_stenches |= Direction::EAST;
+		}
+
+		if (!has_stench(coord.west()))
+		{
+			result.invalidated_stenches |= Direction::WEST;
+		}
+
+		return result;
 	}
-	bool isWumpus(Coordinate youAreHere)
+
+private:
+
+	/* Returns whether the given coordinate contains a stench. */
+	bool has_stench(Coordinate coord) const
 	{
-		if ((getInfo(youAreHere) & TileObs::WUMPUS_DEATH) != 0) {
+		return has_wumpus(coord) || check_neighbors(coord, wumpus_tiles);
+	}
+
+	/* Returns whether the given coordinate contains a breeze. */
+	bool has_breeze(Coordinate coord) const
+	{
+		return has_pit(coord) || check_neighbors(coord, pit_tiles);
+	}
+
+	/* Returns whether the given tile coordinate contains a wumpus. */
+	bool has_wumpus(Coordinate coord) const
+	{
+		return std::find(wumpus_tiles.begin(), wumpus_tiles.end(), coord) != wumpus_tiles.end();
+	}
+
+	/* Returns whether the given tile coordinate contains a pit. */
+	bool has_pit(Coordinate coord) const
+	{
+		return std::find(pit_tiles.begin(), pit_tiles.end(), coord) != pit_tiles.end();
+	}
+
+	/* Returns whether the given tile coordinate contains an obstacle. */
+	bool has_obstacle(Coordinate coord) const
+	{
+		return std::find(obstacle_tiles.begin(), obstacle_tiles.end(), coord) != obstacle_tiles.end();
+	}
+
+	/* Checks if the given coordinate neighbors any of the the given coordinates, and returns the percept if it does. */
+	static bool check_neighbors(Coordinate coord, const std::vector<Coordinate>& tiles)
+	{
+		// See if the tile above is in the list
+		auto result = std::find(tiles.begin(), tiles.end(), coord.north());
+		if (result != tiles.end())
+		{
 			return true;
 		}
-		return false;
 
-	}
-	bool isObstacle(Coordinate youAreHere)
-	{
-		if ((getInfo(youAreHere) & TileObs::BUMP) != 0) {
+		// See if the tile below is in the list
+		result = std::find(tiles.begin(), tiles.end(), coord.south());
+		if (result != tiles.end())
+		{
 			return true;
 		}
+
+		// See if the tile to the left is in the list
+		result = std::find(tiles.begin(), tiles.end(), coord.east());
+		if (result != tiles.end())
+		{
+			return true;
+		}
+
+		// See if the tile to the right is in the list
+		result = std::find(tiles.begin(), tiles.end(), coord.west());
+		if (result != tiles.end())
+		{
+			return true;
+		}
+
 		return false;
 	}
 
+	//////////////////
+	///   Fields   ///
 private:
 
 	std::vector<Coordinate> wumpus_tiles;
 	std::vector<Coordinate> pit_tiles;
 	std::vector<Coordinate> obstacle_tiles;
-	std::vector<Coordinate> reported_stenches;
 	Coordinate gold_tile;
 	Coordinate player_start;
-	int worldSize;
-
-	static int randomInt(int max)
-	{
-		return rand() % max;
-	}
-
-	static Coordinate randomCoord(int size)
-	{
-		return Coordinate{ randomInt(size), randomInt(size) };
-	}
+	int world_size;
 };

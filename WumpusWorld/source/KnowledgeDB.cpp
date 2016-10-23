@@ -7,7 +7,7 @@
 /////////////////
 ///   Facts   ///
 
-/* The X and Y coordinates of a that has been visited. */
+/* The X and Y coordinates of a tile that has been visited. */
 using FVisited = brolog::FactType<struct CVisited, int, int>;
 
 /* The X and Y coordinates of a tile in which a breeze was observed. */
@@ -37,9 +37,6 @@ using FDeadWumpus = brolog::FactType<struct DeadWumpus, int, int>;
 /* Takes a pair of X and Y coordinates (X1, Y1, X2, Y2), and resolves if they are neighbors. */
 using RNeighbor = brolog::RuleType<struct CNeighbor, int, int, int, int>;
 
-/* The X and Y coordinates of all tiles that were visited and are safe to revisit. */
-using RSafeVisited = brolog::RuleType<struct CSafeVisited, int, int>;
-
 /* The X and Y coordinates of all VISITED tiles in which no breeze was observed. */
 using RNoBreeze = brolog::RuleType<struct CNoBreeze, int, int>;
 
@@ -61,11 +58,14 @@ using RWumpus = brolog::RuleType<struct CWumpus, int, int>;
 /* The X and Y coordinates of all tiles in which there definately is nothing that will kill you. */
 using RSafe = brolog::RuleType<struct CSafe, int, int>;
 
+/* The X and Y coordinates of all tiles that were visited and are safe to revisit. */
+using RSafeVisited = brolog::RuleType<struct CSafeVisited, int, int>;
+
 /* The X and Y coordinates of all tiles that are reachable. */
 using RReachable = brolog::RuleType<struct CReachable, int, int>;
 
-/* The X and Y coordinates of all tiles in which there definately is nothing that will kill you, and are reachable. */
-using RSafeReachable = brolog::RuleType<struct CSafeReachable, int, int>;
+/* The X and Y coordinates of all tiles that are reachable and unexplored. */
+using RReachableUnexplored = brolog::RuleType<struct CReachableUnexplored, int, int>;
 
 /* The X and Y coordinages of all tiles in which there definately is nothing that will kill you, are reachable, and have not been visited yet. */
 using RSafeReachableUnexplored = brolog::RuleType<struct CSafeReachableUnexplored, int, int>;
@@ -73,7 +73,7 @@ using RSafeReachableUnexplored = brolog::RuleType<struct CSafeReachableUnexplore
 /* The X and Y coordinates of all tiles that there can't be prove are not safe, and have not been visited yet. */
 using RMaybeSafeReachableUnexplored = brolog::RuleType<struct CMaybeSafeReachableUnexplored, int, int>;
 
-// Database type
+// Database type (all supported facts and rules)
 using WumpusWorldDB = brolog::DataBase<
 	FVisited,
 	FBreeze,
@@ -85,7 +85,6 @@ using WumpusWorldDB = brolog::DataBase<
 	FDeadWumpus,
 
 	RNeighbor,
-	RSafeVisited,
 	RNoBreeze,
 	RNoStench,
 	RNotPit,
@@ -93,11 +92,13 @@ using WumpusWorldDB = brolog::DataBase<
 	RNotWumpus,
 	RWumpus,
 	RSafe,
+	RSafeVisited,
 	RReachable,
-	RSafeReachable,
+	RReachableUnexplored,
 	RSafeReachableUnexplored,
 	RMaybeSafeReachableUnexplored>;
 
+/* Adds all instances of the 'RNeighbor' rule to the database. */
 void add_neighbor_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -106,31 +107,20 @@ void add_neighbor_rules(WumpusWorldDB& database)
 	database.insert_rule<RNeighbor, Params<'X', 'Y', 'L', 'Y'>,
 		Satisfy<ConstantSum<int, -1>, 'L', 'X'>>(); // L is X - 1
 
+	// Handles case for neighbor to the right
 	database.insert_rule<RNeighbor, Params<'X', 'Y', 'R', 'Y'>,
 		Satisfy<ConstantSum<int, 1>, 'R', 'X'>>(); // R is X + 1
 
+	// Handles case for neighbor above
 	database.insert_rule<RNeighbor, Params<'X', 'Y', 'X', 'A'>,
 		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>>(); // A is Y + 1
 
+	// Handles case for neighbor below
 	database.insert_rule<RNeighbor, Params<'X', 'Y', 'X', 'B'>,
 		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>>(); // B is Y - 1
 }
 
-void add_safe_visited_rules(WumpusWorldDB& database)
-{
-	using namespace brolog;
-
-	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FPitDeath, 'X', 'Y'>,
-		NotSatisfy<FWumpusDeath, 'X', 'Y'>>();
-
-	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FPitDeath, 'X', 'Y'>,
-		Satisfy<FDeadWumpus, 'X', 'Y'>>();
-}
-
+/* Adds all instances of the 'RNoBreeze' rule to the database. */
 void add_no_breeze_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -142,6 +132,7 @@ void add_no_breeze_rules(WumpusWorldDB& database)
 		NotSatisfy<FBreeze, 'X', 'Y'>>();
 }
 
+/* Adds all instances of the 'RNoStench' rule to the database. */
 void add_no_stench_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -153,6 +144,7 @@ void add_no_stench_rules(WumpusWorldDB& database)
 		NotSatisfy<FStench, 'X', 'Y'>>();
 }
 
+/* Adds all instances of the RNotPit' rule to the database. */
 void add_not_pit_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -172,6 +164,7 @@ void add_not_pit_rules(WumpusWorldDB& database)
 		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>>();
 }
 
+/* Adds all instances of the 'RPit' rule to the database. */
 void add_pit_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -193,7 +186,7 @@ void add_pit_rules(WumpusWorldDB& database)
 	database.insert_rule<RPit, Params<'X', 'Y'>,
 		Satisfy<FBreeze, 'E', 'Y'>, // There is a breeze (to the right of the tile)
 		Satisfy<ConstantSum<int, -1>, 'X', 'E'>, // X is E - 1
-		Satisfy<ConstantSum<int, 1>, 'E', 'R'>, // R is E + 1
+		Satisfy<ConstantSum<int, 1>, 'R', 'E'>, // R is E + 1
 		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
 		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
 		Satisfy<RNotPit, 'E', 'A'>, // There is not a pit above the breeze
@@ -221,6 +214,7 @@ void add_pit_rules(WumpusWorldDB& database)
 		Satisfy<RNotPit, 'R', 'E'>>(); // There is not a pit to the right of the breeze
 }
 
+/* Adds all instances of the 'RNotWumpus' rule to the database. */
 void add_not_wumpus_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -244,17 +238,18 @@ void add_not_wumpus_rules(WumpusWorldDB& database)
 		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>>();
 }
 
+/* Adds all instances of the 'RWumpus' rule to the database. */
 void add_wumpus_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
-	// A tile contains a wumpus if we've died from a wumpus and not killed it
+	// A tile contains a wumpus if we've died from a wumpus and have not killed it
 	database.insert_rule<RWumpus, Params<'X', 'Y'>,
 		Satisfy<FWumpusDeath, 'X', 'Y'>,
 		NotSatisfy<FDeadWumpus, 'X', 'Y'>>();
 
 	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'S', 'Y'>, // There is a stench to the left of the tile
+		Satisfy<FStench, 'S', 'Y'>, // There is a stench (to the left of the tile)
 		Satisfy<ConstantSum<int, 1>, 'X', 'S'>, // X is S + 1
 		Satisfy<ConstantSum<int, -1>, 'L', 'S'>, // L is S - 1
 		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
@@ -264,9 +259,9 @@ void add_wumpus_rules(WumpusWorldDB& database)
 		Satisfy<RNotWumpus, 'L', 'Y'>>(); // There is not a wumpus to the left of the stench
 
 	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'S', 'Y'>, // There is a stench to the right of the tile
+		Satisfy<FStench, 'S', 'Y'>, // There is a stench (to the right of the tile)
 		Satisfy<ConstantSum<int, -1>, 'X', 'S'>, // X is S - 1
-		Satisfy<ConstantSum<int, 1>, 'M', 'R'>, // R is S + 1
+		Satisfy<ConstantSum<int, 1>, 'R', 'S'>, // R is S + 1
 		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
 		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
 		Satisfy<RNotWumpus, 'S', 'A'>, // There is not a wumpus above the stench
@@ -274,7 +269,7 @@ void add_wumpus_rules(WumpusWorldDB& database)
 		Satisfy<RNotWumpus, 'R', 'Y'>>(); // There is not a wumpus to the right of the stench
 
 	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'X', 'S'>, // There is a stench below the tile
+		Satisfy<FStench, 'X', 'S'>, // There is a stench (below the tile)
 		Satisfy<ConstantSum<int, 1>, 'Y', 'S'>, // Y is S + 1
 		Satisfy<ConstantSum<int, -1>, 'B', 'S'>, // B is S - 1
 		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
@@ -284,7 +279,7 @@ void add_wumpus_rules(WumpusWorldDB& database)
 		Satisfy<RNotWumpus, 'R', 'S'>>(); // There is not a wumpus to the right of the stench
 
 	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'X', 'S'>, // There is a stench above the tile
+		Satisfy<FStench, 'X', 'S'>, // There is a (stench above the tile)
 		Satisfy<ConstantSum<int, -1>, 'Y', 'S'>, // Y is S - 1
 		Satisfy<ConstantSum<int, 1>, 'A', 'S'>, // A is S + 1
 		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
@@ -294,6 +289,7 @@ void add_wumpus_rules(WumpusWorldDB& database)
 		Satisfy<RNotWumpus, 'R', 'S'>>(); // There is not a wumpus to the right of the stench
 }
 
+/* Adds all instances of the 'RSafe' rule to the database. */
 void add_safe_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
@@ -304,11 +300,30 @@ void add_safe_rules(WumpusWorldDB& database)
 		Satisfy<RNotWumpus, 'X', 'Y'>>();
 }
 
+/* Adds all instances of the 'RSafeVisited' rule to the database. */
+void add_safe_visited_rules(WumpusWorldDB& database)
+{
+	using namespace brolog;
+
+	// A tile is safe and visited if it has been visited, and we were not killed by a pit or a wumpus
+	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
+		Satisfy<FVisited, 'X', 'Y'>,
+		NotSatisfy<FPitDeath, 'X', 'Y'>,
+		NotSatisfy<FWumpusDeath, 'X', 'Y'>>();
+
+	// A tile is safe and visited if it has been visited, we were not killed by a pit, and there is a dead wumpus on it
+	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
+		Satisfy<FVisited, 'X', 'Y'>,
+		NotSatisfy<FPitDeath, 'X', 'Y'>,
+		Satisfy<FDeadWumpus, 'X', 'Y'>>();
+}
+
+/* Adds all instances of the 'RReachable' rule to the database. */
 void add_reachable_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
-	// A tile is reachable if it neighbors a safe visited tile that is not an obstacle, and it itself is not an obstacle
+	// A tile is reachable if it neighbors a safe visited tile that is not an obstacle, and it itself is not proven to be an obstacle
 	database.insert_rule<RReachable, Params<'X', 'Y'>,
 		Satisfy<RSafeVisited, 'A', 'B'>,
 		NotSatisfy<FObstacle, 'A', 'B'>,
@@ -316,34 +331,36 @@ void add_reachable_rules(WumpusWorldDB& database)
 		NotSatisfy<FObstacle, 'X', 'Y'>>();
 }
 
-void add_safe_reachable_rules(WumpusWorldDB& database)
+/* Adds all instances of the 'RReachableUnexplored' rules to the database. */
+void add_reachable_unexplored_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
-	// A tile is safe and reachable if it is safe and reachable
-	database.insert_rule<RSafeReachable, Params<'X', 'Y'>,
+	// A tile is reachable and unexplored if it is reachable and not visited
+	database.insert_rule<RReachableUnexplored, Params<'X', 'Y'>,
 		Satisfy<RReachable, 'X', 'Y'>,
-		Satisfy<RSafe, 'X', 'Y'>>();
+		NotSatisfy<FVisited, 'X', 'Y'>>();
 }
 
+/* Adds all instances of the 'RSafeReachableUnexplored' rules to the database. */
 void add_safe_reachable_unexplored_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
-	// A tile is safe and reachable and unexplored if it is safe, reachable, and not visited
+	// A tile is safe and reachable and unexplored if it is reachable, unexplored, and proven to be safe
 	database.insert_rule<RSafeReachableUnexplored, Params<'X', 'Y'>,
-		Satisfy<RSafeReachable, 'X', 'Y'>,
-		NotSatisfy<FVisited, 'X', 'Y'>>();
+		Satisfy<RReachableUnexplored, 'X', 'Y'>,
+		Satisfy<RSafe, 'X', 'Y'>>();
 }
 
+/* Adds all instances of the 'RMaybeSafeReachableUnexplored' rules to the database. */
 void add_maybe_safe_reachable_unexplored_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
-	// A tile is reachable and maybe safe if it's reachable, not visited, and you haven't deduced that there is a pit or wumpus there
+	// A tile is maybe safe, reachable, and unexplored if it is reachable and unexplored, and not proven to be a pit or a wumpus
 	database.insert_rule<RMaybeSafeReachableUnexplored, Params<'X', 'Y'>,
-		Satisfy<RReachable, 'X', 'Y'>,
-		NotSatisfy<FVisited, 'X', 'Y'>,
+		Satisfy<RReachableUnexplored, 'X', 'Y'>,
 		NotSatisfy<RPit, 'X', 'Y'>,
 		NotSatisfy<RWumpus, 'X', 'Y'>>();
 }
@@ -361,7 +378,6 @@ KnowledgeDB::KnowledgeDB(int size)
 	// Add all rules to the database
 	_data = std::make_unique<Data>();
 	add_neighbor_rules(_data->database);
-	add_safe_visited_rules(_data->database);
 	add_no_breeze_rules(_data->database);
 	add_no_stench_rules(_data->database);
 	add_not_pit_rules(_data->database);
@@ -369,8 +385,9 @@ KnowledgeDB::KnowledgeDB(int size)
 	add_not_wumpus_rules(_data->database);
 	add_wumpus_rules(_data->database);
 	add_safe_rules(_data->database);
+	add_safe_visited_rules(_data->database);
 	add_reachable_rules(_data->database);
-	add_safe_reachable_rules(_data->database);
+	add_reachable_unexplored_rules(_data->database);
 	add_safe_reachable_unexplored_rules(_data->database);
 	add_maybe_safe_reachable_unexplored_rules(_data->database);
 
@@ -393,57 +410,85 @@ KnowledgeDB::~KnowledgeDB()
 {
 }
 
-void KnowledgeDB::visited(const Coordinate& coord, TileObsT observations)
+void KnowledgeDB::visited(Coordinate coord, TilePercepts_t percepts)
 {
 	// Add the visited fact
 	_data->database.insert_fact<FVisited>(coord.x, coord.y);
 
 	// Add the stench breeze fact, if observed
-	if ((observations & TileObs::BREEZE) != 0)
+	if ((percepts & TilePercepts::BREEZE) != 0)
 	{
 		_data->database.insert_fact<FBreeze>(coord.x, coord.y);
 	}
 
 	// Add the stench fact, if observed
-	if ((observations & TileObs::STENCH) != 0)
+	if ((percepts & TilePercepts::STENCH) != 0)
 	{
 		_data->database.insert_fact<FStench>(coord.x, coord.y);
 	}
 
 	// Add the glimmer fact, if observed
-	if ((observations & TileObs::GLIMMER) != 0)
+	if ((percepts & TilePercepts::GLIMMER) != 0)
 	{
 		_data->database.insert_fact<FGlimmer>(coord.x, coord.y);
 	}
 
 	// Add the obstacle fact, if observed
-	if ((observations & TileObs::BUMP) != 0)
+	if ((percepts & TilePercepts::BUMP) != 0)
 	{
 		_data->database.insert_fact<FObstacle>(coord.x, coord.y);
 	}
 
 	// Add the pit death fact, if observed
-	if ((observations & TileObs::PIT_DEATH) != 0)
+	if ((percepts & TilePercepts::PIT_DEATH) != 0)
 	{
 		_data->database.insert_fact<FPitDeath>(coord.x, coord.y);
 	}
 
 	// Add the wumpus death fact, if observed
-	if ((observations & TileObs::WUMPUS_DEATH) != 0)
+	if ((percepts & TilePercepts::WUMPUS_DEATH) != 0)
 	{
 		_data->database.insert_fact<FWumpusDeath>(coord.x, coord.y);
 	}
 }
 
-void KnowledgeDB::dead_wumpus(const Coordinate& coord, const std::vector<Coordinate>& invalidatedStenches)
+void KnowledgeDB::dead_wumpus(Coordinate coord, bool invalidatedSelfStench, Direction_t invalidatedNeighborStenches)
 {
 	// Insert the dead wumpus fact
 	_data->database.insert_fact<FDeadWumpus>(coord.x, coord.y);
 
 	// Remove all invalidated stench facts from the database
-	for (auto stench : invalidatedStenches)
+	if (invalidatedSelfStench)
 	{
-		_data->database.remove_fact<FStench>(stench.x, stench.y);
+		_data->database.remove_fact<FStench>(coord.x, coord.y);
+	}
+
+	// If there is no longer a stench to the north
+	if (invalidatedNeighborStenches & Direction::NORTH)
+	{
+		auto north = coord.north();
+		_data->database.remove_fact<FStench>(north.x, north.y);
+	}
+
+	// If there is no longer a stench to the south
+	if (invalidatedNeighborStenches & Direction::SOUTH)
+	{
+		auto south = coord.south();
+		_data->database.remove_fact<FStench>(south.x, south.y);
+	}
+
+	// If there is no longer a stench to the east
+	if (invalidatedNeighborStenches & Direction::EAST)
+	{
+		auto east = coord.east();
+		_data->database.remove_fact<FStench>(east.x, east.y);
+	}
+
+	// If there is no longer a stench to the west
+	if (invalidatedNeighborStenches & Direction::WEST)
+	{
+		auto west = coord.west();
+		_data->database.remove_fact<FStench>(west.x, west.y);
 	}
 }
 
@@ -451,28 +496,20 @@ bool KnowledgeDB::next_wumpus(Coordinate& coords) const
 {
 	auto query = _data->database.satisfy<RWumpus>(brolog::Unknown<'X'>(), brolog::Unknown<'Y'>());
 
-	bool found = false;
-	query([&](int x, int y) {
-		found = true;
+	return query([&](int x, int y) {
 		coords.x = x;
 		coords.y = y;
 	});
-
-	return found;
 }
 
 bool KnowledgeDB::next_safe_unexplored(Coordinate& coords) const
 {
 	auto query = _data->database.satisfy<RSafeReachableUnexplored>(brolog::Unknown<'X'>(), brolog::Unknown<'Y'>());
 
-	bool found = false;
-	query([&](int x, int y) {
-		found = true;
+	return query([&](int x, int y) {
 		coords.x = x;
 		coords.y = y;
 	});
-
-	return found;
 }
 
 bool KnowledgeDB::next_maybe_safe_unexplored(Coordinate& coords) const
@@ -480,47 +517,43 @@ bool KnowledgeDB::next_maybe_safe_unexplored(Coordinate& coords) const
 	// Attempt to satisfy the 'MaysafeReachableUnexplored' rule where both arguments are unknown.
 	auto query = _data->database.satisfy<RMaybeSafeReachableUnexplored>(brolog::Unknown<'X'>(), brolog::Unknown<'Y'>());
 
-	bool found = false;
-	query([&](int x, int y) {
-		found = true;
+	return query([&](int x, int y) {
 		coords.x = x;
 		coords.y = y;
 	});
-
-	return found;
 }
 
-bool KnowledgeDB::known_visited(const Coordinate& coords) const
+bool KnowledgeDB::known_visited(Coordinate coords) const
 {
 	return _data->database.satisfy<FVisited>(coords.x, coords.y)([]() {});
 }
 
-bool KnowledgeDB::known_stench(const Coordinate& coords) const
+bool KnowledgeDB::known_stench(Coordinate coords) const
 {
 	return _data->database.satisfy<FStench>(coords.x, coords.y)([]() {});
 }
 
-bool KnowledgeDB::known_breeze(const Coordinate& coords) const
+bool KnowledgeDB::known_breeze(Coordinate coords) const
 {
 	return _data->database.satisfy<FBreeze>(coords.x, coords.y)([]() {});
 }
 
-bool KnowledgeDB::known_obstacle(const Coordinate& coords) const
+bool KnowledgeDB::known_obstacle(Coordinate coords) const
 {
 	return _data->database.satisfy<FObstacle>(coords.x, coords.y)([]() {});
 }
 
-bool KnowledgeDB::known_pit(const Coordinate& coords) const
+bool KnowledgeDB::known_pit(Coordinate coords) const
 {
 	return _data->database.satisfy<RPit>(coords.x, coords.y)([]() {});
 }
 
-bool KnowledgeDB::known_wumpus(const Coordinate& coords) const
+bool KnowledgeDB::known_wumpus(Coordinate coords) const
 {
 	return _data->database.satisfy<RWumpus>(coords.x, coords.y)([]() {});
 }
 
-bool KnowledgeDB::known_dead_wumpus(const Coordinate& coords) const
+bool KnowledgeDB::known_dead_wumpus(Coordinate coords) const
 {
 	return _data->database.satisfy<FDeadWumpus>(coords.x, coords.y)([]() {});
 }

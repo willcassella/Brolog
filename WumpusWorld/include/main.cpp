@@ -14,16 +14,20 @@ public:
 	int num_arrows;
 };
 
-void debug_print(int worldSize, const KnowledgeDB& database)
+void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& database)
 {
-	for (int x = 0; x < worldSize; ++x)
+	for (int y = worldSize - 1; y >= 0; --y)
 	{
-		for (int y = 0; y < worldSize; ++y)
+		for (int x = 0; x < worldSize; ++x)
 		{
 			Coordinate coords{ x, y };
 			bool visited = database.known_visited(coords);
 
-			if (visited)
+			if (coords == pos)
+			{
+				printf("*");
+			}
+			else if (visited)
 			{
 				printf("<");
 			}
@@ -34,7 +38,14 @@ void debug_print(int worldSize, const KnowledgeDB& database)
 
 			if (database.known_obstacle(coords))
 			{
-				printf("XXXX> ");
+				if (coords == pos)
+				{
+					printf("XXXX* ");
+				}
+				else
+				{
+					printf("XXXX> ");
+				}
 				continue;
 			}
 
@@ -82,7 +93,11 @@ void debug_print(int worldSize, const KnowledgeDB& database)
 				printf(" ");
 			}
 
-			if (visited)
+			if (coords == pos)
+			{
+				printf("* ");
+			}
+			else if (visited)
 			{
 				printf("> ");
 			}
@@ -106,16 +121,17 @@ void smart_ineference(World world)
 
 	do
 	{
-		// Get info for location
-		database.visited(location, world.getInfo(location));
+		// Get the percepts for the current location
+		database.visited(location, world.get_percepts(location));
 
 		// Print info
-		debug_print(world.get_size(), database);
+		debug_print(world.get_size(), location, database);
 		std::cin.get();
 
 		// Decide on the next move
 		if (!database.next_safe_unexplored(location))
 		{
+			printf("Taking a chance...\n");
 			if (!database.next_maybe_safe_unexplored(location))
 			{
 				printf("World impossible");
@@ -128,6 +144,6 @@ void smart_ineference(World world)
 
 int main()
 {
-	World test(10, 0.1f, 0.03f, 0.04f);
+	World test(10, 0.0f, 0.1f, 0.3f);
 	smart_ineference(test);
 }
