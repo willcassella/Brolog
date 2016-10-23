@@ -56,6 +56,9 @@ public:
 	/* Returns whether the given tile is known to contain a dead wumpus. Used for debugging. */
 	bool known_dead_wumpus(Coordinate coords) const;
 
+	/* Returns whether the given tile is known to contain gold. Used for debugging. */
+	bool known_gold(Coordinate coord) const;
+
 	//////////////////
 	///   Fields   ///
 private:

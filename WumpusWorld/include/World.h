@@ -94,8 +94,8 @@ namespace TilePercepts
 	{
 		NONE = 0,
 		BUMP = (1 << 0),
-		BREEZE = (1 << 2),
-		STENCH = (1 << 3),
+		BREEZE = (1 << 1),
+		STENCH = (1 << 2),
 		GLIMMER = (1 << 3),
 		PIT_DEATH = (1 << 4),
 		WUMPUS_DEATH = (1 << 5)

@@ -23,7 +23,11 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 			Coordinate coords{ x, y };
 			bool visited = database.known_visited(coords);
 
-			if (coords == pos)
+			if (database.known_gold(coords))
+			{
+				printf("$");
+			}
+			else if (coords == pos)
 			{
 				printf("*");
 			}
@@ -38,7 +42,11 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 
 			if (database.known_obstacle(coords))
 			{
-				if (coords == pos)
+				if (database.known_gold(coords))
+				{
+					printf("XXXX$ ");
+				}
+				else if (coords == pos)
 				{
 					printf("XXXX* ");
 				}
@@ -93,7 +101,11 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 				printf(" ");
 			}
 
-			if (coords == pos)
+			if (database.known_gold(coords))
+			{
+				printf("$ ");
+			}
+			else if (coords == pos)
 			{
 				printf("* ");
 			}
@@ -144,6 +156,6 @@ void smart_ineference(World world)
 
 int main()
 {
-	World test(10, 0.0f, 0.1f, 0.3f);
+	World test(10, 0.05f, 0.05f, 0.1f);
 	smart_ineference(test);
 }

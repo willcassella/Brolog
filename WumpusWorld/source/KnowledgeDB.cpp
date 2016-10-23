@@ -34,6 +34,9 @@ using FDeadWumpus = brolog::FactType<struct DeadWumpus, int, int>;
 /////////////////
 ///   Rules   ///
 
+/* Rule for accessing the components of a coordinate. */
+using RCoordinate = brolog::RuleType<struct CCoordinate, Coordinate, int, int>;
+
 /* Takes a pair of X and Y coordinates (X1, Y1, X2, Y2), and resolves if they are neighbors. */
 using RNeighbor = brolog::RuleType<struct CNeighbor, int, int, int, int>;
 
@@ -556,4 +559,9 @@ bool KnowledgeDB::known_wumpus(Coordinate coords) const
 bool KnowledgeDB::known_dead_wumpus(Coordinate coords) const
 {
 	return _data->database.satisfy<FDeadWumpus>(coords.x, coords.y)([]() {});
+}
+
+bool KnowledgeDB::known_gold(Coordinate coord) const
+{
+	return _data->database.satisfy<FGlimmer>(coord.x, coord.y)([]() {});
 }
