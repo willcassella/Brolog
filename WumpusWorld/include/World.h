@@ -262,12 +262,12 @@ public:
 		if (has_wumpus(coord))
 		{
 			percepts |= TilePercepts::WUMPUS_DEATH;
-			_benchmark.times_killed_by_pit += 1;
+			_benchmark.times_killed_by_wumpus += 1;
 		}
 		else if (has_pit(coord))
 		{
 			percepts |= TilePercepts::PIT_DEATH;
-			_benchmark.times_killed_by_wumpus += 1;
+			_benchmark.times_killed_by_pit += 1;
 		}
 
 		return percepts;

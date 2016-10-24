@@ -187,8 +187,92 @@ BenchmarkResults smart_ineference(World world)
 	}
 }
 
+BenchmarkResults roomba(World world)
+{
+	Coordinate old_loc;
+	srand(static_cast<int>(time(nullptr)));
+	Player player{ world.get_start(), world.num_wumpi() };
+	old_loc = world.get_start();
+	while (true)
+	{
+		auto percepts = world.explore(player.location);
+
+		if ((percepts & TilePercepts::STENCH) != 0)
+		{
+			int direction = rand() % 4;
+			Direction_t direction_enum = 1 << direction;
+			world.shoot_arrow(player.location, direction_enum);
+			old_loc = player.location;
+			switch (direction)
+			{
+			case 0:
+				player.location = player.location.west();
+				break;
+			case 1:
+				player.location = player.location.north();
+				break;
+			case 2:
+				player.location = player.location.east();
+				break;
+			case 3:
+				player.location = player.location.south();
+				break;
+			default:
+				break;
+			}
+		}
+		else if ((percepts & TilePercepts::GLIMMER) != 0)
+		{
+			return world.get_benchmark();
+		} else if ((percepts & (TilePercepts::BUMP | TilePercepts::PIT_DEATH | TilePercepts::WUMPUS_DEATH)) != 0)
+		{
+			player.location = old_loc;
+		}
+		else
+		{
+			int direction = rand() % 4;
+			Direction_t direction_enum = 1 << direction;
+			old_loc = player.location;
+			Coordinate location;
+			switch (direction)
+			{
+			case 0:
+				location = player.location.west();
+				if (location.x < 0) {
+					location = player.location.east();
+				}
+				player.location = location;
+				break;
+			case 1:
+				location = player.location.north();
+				if (location.x >= world.get_size()) {
+					location = player.location.south();
+				}
+				player.location = location;
+				break;
+			case 2:
+				location = player.location.east();
+				if (location.x >= world.get_size()) {
+					location = player.location.west();
+				}
+				player.location = location;
+				break;
+			case 3:
+				location = player.location.south();
+				if (location.x < 0) {
+					location = player.location.north();
+				}
+				player.location = location;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
 int main()
 {
 	World test(5, 0.05f, 0.05f, 0.1f);
-	smart_ineference(test);
+	roomba(test);
 }
