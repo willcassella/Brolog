@@ -271,7 +271,7 @@ public:
 		std::cout << "Total times gold found: " << totalGoldFound << std::endl;
 		std::cout << "Total number of wumpi killed: " << totalNumWumpusKilled << std::endl;
 		std::cout << "Total number of tiles explored: " << totalTilesExplored << std::endl;
-		std::cout << "Times kiled by wumpus: " << totalWumpusDeaths << std::endl;
+		std::cout << "Times killed by wumpus: " << totalWumpusDeaths << std::endl;
 		std::cout << "Times killed by pit: " << totalPitDeaths << std::endl;
 	}
 };

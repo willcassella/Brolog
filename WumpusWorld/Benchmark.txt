@@ -1,0 +1,72 @@
+BENCHMARKS:
+
+Num Runs: 30
+World Size: 10
+
+Smart inference:
+Total times gold found: 30
+Total number of wumpi killed: 82
+Total number of tiles explored: 1420
+Times killed by wumpus: 3
+Times killed by pit: 7
+
+Roomba inference:
+Total times gold found: 4
+Total number of wumpi killed: 16
+Total number of tiles explored: 260169
+Times killed by wumpus: 0
+Times killed by pit: 28
+-----------------------------------------
+
+Num Runs: 30
+World Size: 15
+
+Smart inference:
+Total times gold found: 30
+Total number of wumpi killed: 160
+Total number of tiles explored: 3122
+Times killed by wumpus: 6
+Times killed by pit: 7
+
+Roomba inference:
+Total times gold found: 3
+Total number of wumpi killed: 40
+Total number of tiles explored: 270150
+Times killed by wumpus: 0
+Times killed by pit: 131
+----------------------------------------
+
+Num Runs: 30
+World Size: 20
+
+Smart inference:
+Total times gold found: 30
+Total number of wumpi killed: 314
+Total number of tiles explored: 5915
+Times killed by wumpus: 4
+Times killed by pit: 5
+
+Roomba inference:
+Total times gold found: 2
+Total number of wumpi killed: 85
+Total number of tiles explored: 280431
+Times killed by wumpus: 4
+Times killed by pit: 203
+------------------------------------------------
+
+Num Runs: 30
+World Size: 25
+
+Smart inference:
+Total times gold found: 30
+Total number of wumpi killed: 545
+Total number of tiles explored: 9917
+Times killed by wumpus: 7
+Times killed by pit: 8
+
+Roomba inference:
+Total times gold found: 1
+Total number of wumpi killed: 133
+Total number of tiles explored: 291203
+Times killed by wumpus: 1
+Times killed by pit: 391

@@ -154,9 +154,6 @@ public:
 	World(int size, float pWumpus, float pPit, float pObs)
 		: world_size(size)
 	{
-		// Seed the 'rand' function with the current time
-		srand(static_cast<int>(time(nullptr)));
-
 		// Calculate the total number of all types of tiles (given their probablilities)
 		const int numTiles = size * size;
 		const int numWumps = (int)floor(pWumpus * numTiles);
