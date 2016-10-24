@@ -382,11 +382,12 @@ void add_shoot_wumpus_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
-	// You can shoot a wumpus from a safe neighboring tile (keep it simple)
+	// You can shoot a wumpus from a safe neighboring tile that is not an obstacle (keep it simple)
 	database.insert_rule<RShootWumpus, Params<'X', 'Y', 'A', 'B'>,
 		Satisfy<RWumpus, 'X', 'Y'>,
 		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>,
-		Satisfy<RSafeVisited, 'A', 'B'>>();
+		Satisfy<RSafeVisited, 'A', 'B'>,
+		NotSatisfy<FObstacle, 'A', 'B'>>();
 }
 
 //////////////////////////////
@@ -435,27 +436,20 @@ KnowledgeDB::~KnowledgeDB()
 {
 }
 
-Action KnowledgeDB::next_action(Coordinate coord) const
+Action KnowledgeDB::next_action(const Player& player) const
 {
 	Action result;
 
 	// Determine if we've found the gold
-	if (known_gold(coord))
+	if (known_gold(player.location))
 	{
 		result.type = Action::Type::GRAB;
 		return result;
 	}
 
-	// Determine if there's anywhere we can move
-	if (next_safe_unexplored(result.location))
-	{
-		result.type = Action::Type::MOVE;
-		return result;
-	}
-
-	// Determine if we can shoot a wumpus
+	// Determine if we can shoot a wumpus (the agent could be a pacifist, but wumpus queries are slow)
 	Coordinate wumpusCoords;
-	if (next_wumpus(wumpusCoords))
+	if (player.num_arrows > 0 && next_wumpus(wumpusCoords))
 	{
 		result.type = Action::Type::SHOOT;
 
@@ -490,6 +484,13 @@ Action KnowledgeDB::next_action(Coordinate coord) const
 			assert(false);
 		}
 
+		return result;
+	}
+
+	// Determine if there's anywhere we can move
+	if (next_safe_unexplored(result.location))
+	{
+		result.type = Action::Type::MOVE;
 		return result;
 	}
 

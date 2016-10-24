@@ -4,6 +4,16 @@
 #include <memory>
 #include "World.h"
 
+struct Player
+{
+	//////////////////
+	///   Fields   ///
+public:
+
+	Coordinate location;
+	std::size_t num_arrows;
+};
+
 struct Action
 {
 	enum class Type
@@ -54,7 +64,7 @@ public:
 public:
 
 	/* Returns what the next action of the player should be, given their current location. */
-	Action next_action(Coordinate location) const;
+	Action next_action(const Player& player) const;
 
 	/* Reports that a tile was visited, and what was observed on that tile. */
 	void visited(Coordinate coord, TilePercepts_t percepts);

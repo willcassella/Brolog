@@ -1,18 +1,9 @@
 // main.cpp
 
+#include <future>
 #include <iostream>
 #include "../include/World.h"
 #include "../include/KnowledgeDB.h"
-
-struct Player
-{
-	//////////////////
-	///   Fields   ///
-public:
-
-	Coordinate location;
-	std::size_t num_arrows;
-};
 
 void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& database)
 {
@@ -42,18 +33,7 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 
 			if (database.known_obstacle(coords))
 			{
-				if (database.known_gold(coords))
-				{
-					printf("XXXX$ ");
-				}
-				else if (coords == pos)
-				{
-					printf("XXXX* ");
-				}
-				else
-				{
-					printf("XXXX> ");
-				}
+				printf("XXX> ");
 				continue;
 			}
 
@@ -82,13 +62,7 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 			{
 				printf("P");
 			}
-			else
-			{
-				printf(" ");
-			}
-
-			// If the database contains a wumpus
-			if (database.known_wumpus(coords))
+			else if (database.known_wumpus(coords))
 			{
 				printf("W");
 			}
@@ -125,7 +99,7 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 	printf("\n\n\n");
 }
 
-BenchmarkResults smart_ineference(World world)
+BenchmarkResults smart_inference(World world)
 {
 	// Create a knowledge base
 	KnowledgeDB database(world.get_size());
@@ -139,7 +113,7 @@ BenchmarkResults smart_ineference(World world)
 	while (true)
 	{
 		// Get the next action reccomended from the database
-		auto action = database.next_action(player.location);
+		auto action = database.next_action(player);
 
 		switch (action.type)
 		{
@@ -165,6 +139,7 @@ BenchmarkResults smart_ineference(World world)
 
 				// Fire the arrow
 				auto result = world.shoot_arrow(player.location, action.direction);
+				player.num_arrows -= 1;
 
 				// Report the results to the knowledge database if we hit anything
 				if (result.hit)
@@ -182,13 +157,59 @@ BenchmarkResults smart_ineference(World world)
 		}
 
 		// Debug print
-		debug_print(world.get_size(), player.location, database);
-		std::cin.get();
+		//debug_print(world.get_size(), player.location, database);
+		//std::cin.get();
 	}
 }
 
 int main()
 {
-	World test(5, 0.05f, 0.05f, 0.1f);
-	smart_ineference(test);
+	constexpr std::size_t NUM_RUNS = 100;
+	constexpr int WORLD_SIZE = 15;
+
+	// Vector to hold benchmark results
+	std::vector<std::future<BenchmarkResults>> benchmarks;
+	benchmarks.reserve(NUM_RUNS);
+
+	// Start running benchmarks asynchronously
+	for (int i = 0; i < NUM_RUNS; ++i)
+	{
+		// Generate a world
+		World world(WORLD_SIZE, 0.05f, 0.05f, 0.1f);
+
+		// Run the algorithm
+		benchmarks.push_back(std::async(std::launch::async, smart_inference, world));
+	}
+
+	// Agregate benchmark totals
+	std::size_t totalGoldFound = 0;
+	std::size_t totalNumWumpusKilled = 0;
+	std::size_t totalTilesExplored = 0;
+	std::size_t totalWumpusDeaths = 0;
+	std::size_t totalPitDeaths = 0;
+
+	for (int i = 0; i < NUM_RUNS; ++i)
+	{
+		auto benchmark = benchmarks[i].get();
+		std::cout << "Completed run " << i << std::endl;
+
+		if (benchmark.found_gold)
+		{
+			totalGoldFound += 1;
+		}
+
+		totalNumWumpusKilled += benchmark.num_wumpi_killed;
+		totalTilesExplored += benchmark.num_tiles_explored;
+		totalWumpusDeaths += benchmark.times_killed_by_wumpus;
+		totalPitDeaths += benchmark.times_killed_by_pit;
+	}
+
+	std::cout << "Number of runs: " << NUM_RUNS << std::endl;
+	std::cout << "World size: " << WORLD_SIZE << std::endl;
+	std::cout << "Total times gold found: " << totalGoldFound << std::endl;
+	std::cout << "Total number of wumpi killed: " << totalNumWumpusKilled << std::endl;
+	std::cout << "Total number of tiles explored: " << totalTilesExplored << std::endl;
+	std::cout << "Times kiled by wumpus: " << totalWumpusDeaths << std::endl;
+	std::cout << "Times killed by pit: " << totalPitDeaths << std::endl;
+	std::cin.get();
 }
