@@ -3,7 +3,7 @@
 
 #include "ArgPack.h"
 #include "DataBase.h"
-#include "Enumerator.h"
+#include "Function.h"
 
 namespace brolog
 {

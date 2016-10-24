@@ -6,12 +6,16 @@
 
 namespace brolog
 {
+	/* Creates an 'arg pack' for the given variable types and names, given a set of var chains.
+	 * This is used to create the tuple of variables for invoking a predicate. */
 	template <typename ... Ts, char ... Ns, typename ... VarChainTs>
-	std::tuple<Var<Ts>*...> create_arg_pack(tmp::type_list<Ts...>, tmp::char_list<Ns...>, VarChainTs& ... varChains)
+	std::tuple<Var<Ts>*...> create_arg_pack(tmp::type_list<Ts...> /*types*/, tmp::char_list<Ns...> /*names*/, VarChainTs& ... varChains)
 	{
+		// Return a pointer to the first VarChainElement in the set of var chains that has the requested variable type and name
 		return std::make_tuple(&tmp::cast_first_suitable<VarChainElement<Ts, Ns>>(varChains...)...);
 	}
 
+	/* Recursively unifies an 'arg pack', with a fact one element at a time. */
 	template <std::size_t I, typename T, typename ... Ts, typename ContinueFnT>
 	bool unify_arg_pack_element(
 		std::true_type,
@@ -45,6 +49,7 @@ namespace brolog
 		return false;
 	}
 
+	/* Recursive end-case for 'unify_arg_pack_element', all arguments have been unified, calls the continuation function. */
 	template <std::size_t I, typename ... Ts, typename ContinueFnT>
 	bool unify_arg_pack_element(
 		std::false_type,
@@ -55,18 +60,22 @@ namespace brolog
 		return next();
 	}
 
+	/* Unifies an 'arg pack' with a fact, calling the 'next' function when complete, or returning on failure.
+	 * Returns whether unification was successful. This may return false if this unification failed, or if failure occurred further on. */
 	template <typename ... Ts, typename ContinueFnT>
 	bool unify_arg_pack(const std::tuple<Var<Ts>*...>& args, const std::tuple<Ts...>& fact, const ContinueFnT& next)
 	{
 		return unify_arg_pack_element<0>(std::bool_constant<0 < sizeof...(Ts)>{}, args, fact, next);
 	}
 
+	/* Returns whether the given 'arg pack' has been completely unified, recursive. */
 	template <std::size_t I, typename TupleT>
 	auto arg_pack_unified(const TupleT& argPack) -> std::enable_if_t<I < std::tuple_size<TupleT>::value, bool>
 	{
 		return std::get<I>(argPack)->unified() && arg_pack_unified<I + 1>(argPack);
 	}
 
+	/* Recursive end-case for 'arg_pack_unified', no more members to look at. */
 	template <std::size_t I, typename TupleT>
 	auto arg_pack_unified(const TupleT& argPack) -> std::enable_if_t<I >= std::tuple_size<TupleT>::value, bool>
 	{

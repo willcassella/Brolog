@@ -72,4 +72,8 @@ namespace brolog
 		UserData _user_data;
 		InvokerFn* _invoker;
 	};
+
+	/* Function called at each step to continue resolution.
+	 * Returns whether resolution succeeded or failed. */
+	using ContinueFn = Function<bool()>;
 }

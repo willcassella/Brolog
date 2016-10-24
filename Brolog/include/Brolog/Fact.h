@@ -3,17 +3,20 @@
 
 #include <set>
 #include "ArgPack.h"
-#include "Enumerator.h"
 #include "DataBase.h"
 
 namespace brolog
 {
+	/* Type defining a 'Fact Type'.
+	 * 'CookieT' - Any unique type, not necesarily defined. Used to disambiguate this FacType from any others that
+	 * take the same arguments. */
 	template <typename CookieT, typename ... ArgTs>
 	struct FactType
 	{
-		/* The type of object for this term that is stored in the database. */
+		/* The type of object that is stored in the database for each instance of this FactType. */
 		using Instance = std::tuple<ArgTs...>;
 
+		/* The list of argument types required to satisfy this FactType. */
 		using ArgTypes = tmp::type_list<ArgTs...>;
 
 		template <typename DBaseT, typename ContinueFnT>

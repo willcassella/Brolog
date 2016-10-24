@@ -140,7 +140,6 @@
     <ClInclude Include="include\Brolog\VarChain.h" />
     <ClInclude Include="include\Brolog\Brolog.h" />
     <ClInclude Include="include\Brolog\DataBase.h" />
-    <ClInclude Include="include\Brolog\Enumerator.h" />
     <ClInclude Include="include\Brolog\Fact.h" />
     <ClInclude Include="include\Brolog\Rule.h" />
     <ClInclude Include="include\Brolog\TMP.h" />

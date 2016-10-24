@@ -130,6 +130,19 @@ public:
 	Direction_t invalidated_stenches = 0;
 };
 
+struct BenchmarkResults
+{
+	//////////////////
+	///   Fields   ///
+public:
+
+	bool found_gold = false;
+	std::size_t num_tiles_explored = 0;
+	std::size_t num_wumpi_killed = 0;
+	std::size_t times_killed_by_pit = 0;
+	std::size_t times_killed_by_wumpus = 0;
+};
+
 class World
 {
 	////////////////////////
@@ -205,13 +218,21 @@ public:
 		return player_start;
 	}
 
-	/* Returns the percepts a player would experience in a tile, if they were to visit it. */
-	TilePercepts_t get_percepts(Coordinate coord) const
+	/* Returns the number of wumpus' in the world. */
+	std::size_t num_wumpi() const
 	{
+		return wumpus_tiles.size();
+	}
+
+	/* Returns the percepts the player experiences exploring this tile, and sets 'coord' to their new location. */
+	TilePercepts_t explore(Coordinate coord)
+	{
+		_benchmark.num_tiles_explored += 1;
+
 		// If they're on an obstacle
 		if (has_obstacle(coord))
 		{
-			// They only feel a bump
+			// They only feel a bump, coord does not change
 			return TilePercepts::BUMP;
 		}
 
@@ -222,6 +243,7 @@ public:
 		{
 			// They perceive a glimmer
 			percepts |= TilePercepts::GLIMMER;
+			_benchmark.found_gold = true;
 		}
 
 		// If there's a breeze on the tile
@@ -240,10 +262,12 @@ public:
 		if (has_wumpus(coord))
 		{
 			percepts |= TilePercepts::WUMPUS_DEATH;
+			_benchmark.times_killed_by_pit += 1;
 		}
 		else if (has_pit(coord))
 		{
 			percepts |= TilePercepts::PIT_DEATH;
+			_benchmark.times_killed_by_wumpus += 1;
 		}
 
 		return percepts;
@@ -304,6 +328,10 @@ public:
 		{
 			return result;
 		}
+		else
+		{
+			_benchmark.num_wumpi_killed += 1;
+		}
 
 		// Figure out which stenches have been invalidated
 		auto iter = std::find(wumpus_tiles.begin(), wumpus_tiles.end(), coord);
@@ -336,6 +364,12 @@ public:
 		}
 
 		return result;
+	}
+
+	/* Returns the benchmark object for the player so far. */
+	BenchmarkResults get_benchmark() const
+	{
+		return _benchmark;
 	}
 
 private:
@@ -414,4 +448,6 @@ private:
 	Coordinate gold_tile;
 	Coordinate player_start;
 	int world_size;
+
+	BenchmarkResults _benchmark;
 };

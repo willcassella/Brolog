@@ -11,7 +11,7 @@ struct Player
 public:
 
 	Coordinate location;
-	int num_arrows;
+	std::size_t num_arrows;
 };
 
 void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& database)
@@ -125,37 +125,70 @@ void debug_print(int worldSize, const Coordinate& pos, const KnowledgeDB& databa
 	printf("\n\n\n");
 }
 
-void smart_ineference(World world)
+BenchmarkResults smart_ineference(World world)
 {
 	// Create a knowledge base
 	KnowledgeDB database(world.get_size());
-	Coordinate location = world.get_start();
 
-	do
+	// Instantiate player object
+	Player player{ world.get_start(), world.num_wumpi() };
+
+	// Report the starting conditions
+	database.visited(player.location, world.explore(player.location));
+
+	while (true)
 	{
-		// Get the percepts for the current location
-		database.visited(location, world.get_percepts(location));
+		// Get the next action reccomended from the database
+		auto action = database.next_action(player.location);
 
-		// Print info
-		debug_print(world.get_size(), location, database);
-		std::cin.get();
-
-		// Decide on the next move
-		if (!database.next_safe_unexplored(location))
+		switch (action.type)
 		{
-			printf("Taking a chance...\n");
-			if (!database.next_maybe_safe_unexplored(location))
+		case Action::Type::MOVE:
 			{
-				printf("World impossible");
-				std::cin.get();
-				exit(0);
+				// Get the percepts at that location
+				auto percepts = world.explore(action.location);
+
+				// Report them to the database
+				database.visited(action.location, percepts);
+
+				// Determine if we could actually move there
+				if ((percepts & (TilePercepts::BUMP | TilePercepts::PIT_DEATH | TilePercepts::WUMPUS_DEATH)) == 0)
+				{
+					player.location = action.location;
+				}
+				break;
+			}
+		case Action::Type::SHOOT:
+			{
+				// Go to the shoot location (will be a previously visited tile)
+				player.location = action.location;
+
+				// Fire the arrow
+				auto result = world.shoot_arrow(player.location, action.direction);
+
+				// Report the results to the knowledge database if we hit anything
+				if (result.hit)
+				{
+					database.dead_wumpus(result.invalidated_self_stench, result.invalidated_stenches);
+				}
+
+				break;
+			}
+		default:
+			{
+				// Handle's the 'GRAB' and 'STOP' cases, return
+				return world.get_benchmark();
 			}
 		}
-	} while (true);
+
+		// Debug print
+		debug_print(world.get_size(), player.location, database);
+		std::cin.get();
+	}
 }
 
 int main()
 {
-	World test(10, 0.05f, 0.05f, 0.1f);
+	World test(5, 0.05f, 0.05f, 0.1f);
 	smart_ineference(test);
 }
