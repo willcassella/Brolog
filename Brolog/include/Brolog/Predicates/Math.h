@@ -81,7 +81,7 @@ namespace brolog
 		static bool satisfy(const DBaseT& dbase, const std::tuple<Var<T>*, Var<T>*>& args, const ContinueFnT& next)
 		{
 			// Create a third argument and unify it with the constant
-			StoredVarChainElement<T, char(0)> c;
+			StoredVarChainElement<T, std::numeric_limits<int>::max()> c;
 			c.unify(V);
 
 			return Sum<T>::satisfy(dbase, std::make_tuple(std::get<0>(args), std::get<1>(args), &c), next);

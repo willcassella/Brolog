@@ -8,8 +8,8 @@ namespace brolog
 {
 	/* Creates an 'arg pack' for the given variable types and names, given a set of var chains.
 	 * This is used to create the tuple of variables for invoking a predicate. */
-	template <typename ... Ts, char ... Ns, typename ... VarChainTs>
-	std::tuple<Var<Ts>*...> create_arg_pack(tmp::type_list<Ts...> /*types*/, tmp::char_list<Ns...> /*names*/, VarChainTs& ... varChains)
+	template <typename ... Ts, int ... Ns, typename ... VarChainTs>
+	std::tuple<Var<Ts>*...> create_arg_pack(tmp::type_list<Ts...> /*types*/, tmp::int_list<Ns...> /*names*/, VarChainTs& ... varChains)
 	{
 		// Return a pointer to the first VarChainElement in the set of var chains that has the requested variable type and name
 		return std::make_tuple(&tmp::cast_first_suitable<VarChainElement<Ts, Ns>>(varChains...)...);

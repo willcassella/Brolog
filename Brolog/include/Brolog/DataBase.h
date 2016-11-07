@@ -1,6 +1,7 @@
 // DataBase.h - Copyright (c) 2016 Will Cassella
 #pragma once
 
+#include <limits>
 #include "ArgPack.h"
 
 namespace brolog
@@ -11,28 +12,28 @@ namespace brolog
 	template <typename TypeT, typename Params, typename ... PredicateTs>
 	struct Rule;
 
-	template <std::size_t I, char ... Ns, typename T, typename ... Ts, typename OutFnT, typename TupleT, typename ... ArgTs>
-	void output_unknowns(tmp::char_list<Ns...> names, tmp::type_list<T, Ts...>, const OutFnT& out, const TupleT& tuple, const ArgTs& ... args)
+	template <std::size_t I, int ... Ns, typename T, typename ... Ts, typename OutFnT, typename TupleT, typename ... ArgTs>
+	void output_unknowns(tmp::int_list<Ns...> names, tmp::type_list<T, Ts...>, const OutFnT& out, const TupleT& tuple, const ArgTs& ... args)
 	{
 		output_unknowns<I + 1>(names, tmp::type_list<Ts...>{}, out, tuple, args...);
 	}
 
-	template <std::size_t I, char N, char ... Ns, typename ... Ts, typename OutFnT, typename TupleT, typename ... ArgTs>
-	auto output_unknowns(tmp::char_list<Ns...>, tmp::type_list<Unknown<N>, Ts...>, const OutFnT& out, const TupleT& tuple, const ArgTs& ... args) ->
-		std::enable_if_t<!tmp::element_of_char_list<N, tmp::char_list<Ns...>>::value>
+	template <std::size_t I, int N, int ... Ns, typename ... Ts, typename OutFnT, typename TupleT, typename ... ArgTs>
+	auto output_unknowns(tmp::int_list<Ns...>, tmp::type_list<Unknown<N>, Ts...>, const OutFnT& out, const TupleT& tuple, const ArgTs& ... args) ->
+		std::enable_if_t<!tmp::element_of_int_list<N, tmp::int_list<Ns...>>::value>
 	{
-		output_unknowns<I + 1>(tmp::char_list<N, Ns...>{}, tmp::type_list<Ts...>{}, out, tuple, args..., std::get<I>(tuple)->value());
+		output_unknowns<I + 1>(tmp::int_list<N, Ns...>{}, tmp::type_list<Ts...>{}, out, tuple, args..., std::get<I>(tuple)->value());
 	}
 
-	template <std::size_t I, char N, char ... Ns, typename ... Ts, typename OutFnT, typename TupleT, typename ... ArgTs>
-	auto output_unknowns(tmp::char_list<Ns...> names, tmp::type_list<Unknown<N>, Ts...>, const OutFnT& out, const TupleT& tuple, const ArgTs& ... args) ->
-		std::enable_if_t<tmp::element_of_char_list<N, tmp::char_list<Ns...>>::value>
+	template <std::size_t I, int N, int ... Ns, typename ... Ts, typename OutFnT, typename TupleT, typename ... ArgTs>
+	auto output_unknowns(tmp::int_list<Ns...> names, tmp::type_list<Unknown<N>, Ts...>, const OutFnT& out, const TupleT& tuple, const ArgTs& ... args) ->
+		std::enable_if_t<tmp::element_of_int_list<N, tmp::int_list<Ns...>>::value>
 	{
 		output_unknowns<I + 1>(names, tmp::type_list<Ts...>{}, out, tuple, args...);
 	}
 
-	template <std::size_t I, char ... Ns, typename OutFnT, typename TupleT, typename ... ArgTs>
-	void output_unknowns(tmp::char_list<Ns...>, tmp::type_list<>, const OutFnT& out, const TupleT& /*tuple*/, const ArgTs& ... args)
+	template <std::size_t I, int ... Ns, typename OutFnT, typename TupleT, typename ... ArgTs>
+	void output_unknowns(tmp::int_list<Ns...>, tmp::type_list<>, const OutFnT& out, const TupleT& /*tuple*/, const ArgTs& ... args)
 	{
 		out(args...);
 	}
@@ -85,9 +86,9 @@ namespace brolog
 		auto create_query(const ArgTs& ... args) const
 		{
 			// Create the var chain for this invocation and fill it
-			auto varChain = create_user_var_chain<VarChainRoot, char(0)>(typename TermT::ArgTypes{}, tmp::type_list<ArgTs...>{});
-			fill_user_var_chain<char(0)>(varChain, args...);
-			auto nameList = get_user_var_chain_name_list<char(0)>(tmp::char_list<>{}, tmp::type_list<ArgTs...>{});
+			auto varChain = create_user_var_chain<VarChainRoot, std::numeric_limits<int>::max()>(typename TermT::ArgTypes{}, tmp::type_list<ArgTs...>{});
+			fill_user_var_chain<std::numeric_limits<int>::max()>(varChain, args...);
+			auto nameList = get_user_var_chain_name_list<std::numeric_limits<int>::max()>(tmp::int_list<>{}, tmp::type_list<ArgTs...>{});
 
 			// The query object that is returned to the caller
 			// First argument is a function to call at each unification
@@ -103,7 +104,7 @@ namespace brolog
 				auto end = [&]() -> bool
 				{
 					// Call the given output function
-					output_unknowns<0>(tmp::char_list<>{}, tmp::type_list<ArgTs...>{}, out, argPack);
+					output_unknowns<0>(tmp::int_list<>{}, tmp::type_list<ArgTs...>{}, out, argPack);
 					numInvocations += 1;
 
 					// Return 'true' so that the outer predicate knows it was resolved

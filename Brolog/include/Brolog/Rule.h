@@ -46,19 +46,19 @@ namespace brolog
 	};
 
 	/* Declares a series of paramaters for this Rule. */
-	template <char ... Ns>
-	using Params = tmp::char_list<Ns...>;
+	template <int ... Ns>
+	using Params = tmp::int_list<Ns...>;
 
 	/* The predicate to satisfy, and the way to satisfy it (argument names).
 	 * If any of the argument names have not previously been used in this rule, it is interpreted as a new unbound variable. */
-	template <typename PredicateT, char ... ArgNs>
+	template <typename PredicateT, int ... ArgNs>
 	struct Satisfy
 	{
 	};
 
 	/* The predicate to not satify, and teh way to satisfy it (argument names).
 	 * Negation requires that all arguments have already been unified, and therfore does not allow introducing new arguments. */
-	template <typename PredicateT, char ... ArgNs>
+	template <typename PredicateT, int ... ArgNs>
 	struct NotSatisfy
 	{
 	};
@@ -89,7 +89,7 @@ namespace brolog
 
 		template <
 		typename PredT,
-		char ... ArgNs,
+		int ... ArgNs,
 		typename ... SatTs,
 		typename DBaseT,
 		typename ContinueFnT,
@@ -102,10 +102,10 @@ namespace brolog
 		{
 			// Create a new var chain for this scope (allows introducing new variables and type-checking existing ones)
 			auto localVarChain = create_var_chain<VarChainRoot, StoredVarChainElement>(
-				typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains...);
+				typename PredT::ArgTypes{}, tmp::int_list<ArgNs...>{}, outerVarChains...);
 
 			// Create an arg pack for this predicate
-			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains..., localVarChain);
+			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::int_list<ArgNs...>{}, outerVarChains..., localVarChain);
 
 			// Recursively satisfy predicates
 			return PredT::satisfy(dataBase, argPack,
@@ -116,7 +116,7 @@ namespace brolog
 
 		template <
 		typename PredT,
-		char ... ArgNs,
+		int ... ArgNs,
 		typename ... SatTs,
 		typename DBaseT,
 		typename ContinueFnT,
@@ -128,7 +128,7 @@ namespace brolog
 			OuterVarChainTs& ... outerVarChains)
 		{
 			// Do NOT create a local var chain for this scope (since introducing new variables in negative predicates is not allowed)
-			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::char_list<ArgNs...>{}, outerVarChains...);
+			auto argPack = create_arg_pack(typename PredT::ArgTypes{}, tmp::int_list<ArgNs...>{}, outerVarChains...);
 
 			bool satisfied = false;
 			PredT::satisfy(database, argPack,

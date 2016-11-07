@@ -30,26 +30,26 @@ namespace brolog
 		{
 		};
 
-		/* Similar to 'type_list', but for character constants (here used for variable names). */
-		template <char ... Cs>
-		using char_list = std::integer_sequence<char, Cs...>;
+		/* Similar to 'type_list', but for integer constants (here used for variable names). */
+		template <int ... Is>
+		using int_list = std::integer_sequence<int, Is...>;
 
-		/* Given a character and a character list, evaluates to std::true_type if the given character exists in the char_list, std::false_type otherwise. */
-		template <char T, typename CharList>
-		struct element_of_char_list;
+		/* Given a int and a int list, evaluates to std::true_type if the given int exists in the int_list, std::false_type otherwise. */
+		template <int T, typename CharList>
+		struct element_of_int_list;
 
-		template <char T, char C, char ... Cs>
-		struct element_of_char_list < T, char_list<C, Cs...> > : element_of_char_list<T, char_list<Cs...>>
+		template <int T, int I, int ... Is>
+		struct element_of_int_list < T, int_list<I, Is...> > : element_of_int_list<T, int_list<Is...>>
 		{
 		};
 
-		template <char T, char ... Cs>
-		struct element_of_char_list < T, char_list<T, Cs...> > : std::true_type
+		template <int T, int ... Is>
+		struct element_of_int_list < T, int_list<T, Is...> > : std::true_type
 		{
 		};
 
-		template <char T>
-		struct element_of_char_list < T, char_list<> > : std::false_type
+		template <int T>
+		struct element_of_int_list < T, int_list<> > : std::false_type
 		{
 		};
 
