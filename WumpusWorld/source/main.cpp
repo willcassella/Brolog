@@ -302,7 +302,7 @@ AggregateBenchmark aggregate_benchmarks(std::size_t numRuns, std::vector<std::fu
 int main()
 {
 	constexpr std::size_t NUM_RUNS = 30;
-	constexpr int WORLD_SIZE = 10;
+	constexpr int WORLD_SIZE = 5;
 
 	// Vector to hold benchmark results
 	std::vector<std::future<BenchmarkResults>> smartBenchmarks;

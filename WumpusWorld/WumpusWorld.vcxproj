@@ -137,8 +137,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="include\main.cpp" />
     <ClCompile Include="source\KnowledgeDB.cpp" />
+    <ClCompile Include="source\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\KnowledgeDB.h" />

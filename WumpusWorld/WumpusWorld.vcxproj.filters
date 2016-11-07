@@ -14,7 +14,7 @@
     <ClCompile Include="source\KnowledgeDB.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="include\main.cpp">
+    <ClCompile Include="source\main.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
