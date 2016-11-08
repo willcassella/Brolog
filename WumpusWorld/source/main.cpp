@@ -279,7 +279,7 @@ public:
 AggregateBenchmark aggregate_benchmarks(std::size_t numRuns, std::vector<std::future<BenchmarkResults>>& benchmarks)
 {
 	AggregateBenchmark aggregate;
-	for (int i = 0; i < numRuns; ++i)
+	for (std::size_t i = 0; i < numRuns; ++i)
 	{
 		// Aggregate smart benchmarks
 		auto benchmark = benchmarks[i].get();
@@ -311,7 +311,7 @@ int main()
 	roombaBenchmarks.reserve(NUM_RUNS);
 
 	// Start running benchmarks asynchronously
-	for (int i = 0; i < NUM_RUNS; ++i)
+	for (std::size_t i = 0; i < NUM_RUNS; ++i)
 	{
 		// Generate a world
 		World world(WORLD_SIZE, 0.05f, 0.05f, 0.1f);

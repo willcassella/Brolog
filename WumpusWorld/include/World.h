@@ -6,7 +6,6 @@
 #include <ctime>
 #include <cassert>
 #include <vector>
-#include <algorithm>
 
 struct Coordinate
 {
@@ -27,7 +26,7 @@ public:
 	 * It will not pick a coordinate within the given list of disallowed coordinates. */
 	static Coordinate random(int max, const std::vector<Coordinate>& disallowed)
 	{
-		assert(disallowed.size() < max * max);
+		assert(disallowed.size() < static_cast<std::size_t>(max * max));
 
 		Coordinate result;
 
