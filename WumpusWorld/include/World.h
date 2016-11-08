@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdlib>
 #include <ctime>
 #include <cassert>
 #include <vector>

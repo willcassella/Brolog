@@ -226,6 +226,12 @@ namespace brolog
 
 	struct VarChainRoot {};
 
+	template <typename VarChainT, template <typename T, int N> class Element, typename ... OuterChainTs>
+	auto create_var_chain(tmp::type_list<>, tmp::int_list<>, OuterChainTs& ... /*outers*/)
+	{
+		return VarChainT();
+	}
+
 	template <typename VarChainT, template <typename T, int N> class Element, typename T, typename ... Ts, int N, int ... Ns, typename ... OuterChainTs>
 	auto create_var_chain(tmp::type_list<T, Ts...>, tmp::int_list<N, Ns...>, OuterChainTs& ... outers)
 	{
@@ -236,12 +242,6 @@ namespace brolog
 			(tmp::type_list<Ts...>{},
 			tmp::int_list<Ns...>{},
 			outers...);
-	}
-
-	template <typename VarChainT, template <typename T, int N> class Element, typename ... OuterChainTs>
-	auto create_var_chain(tmp::type_list<>, tmp::int_list<>, OuterChainTs& ... /*outers*/)
-	{
-		return VarChainT();
 	}
 
 	template <std::size_t I, typename T, typename ... Ts, int N, int ... Ns, typename ArgPackT, typename VarChainT>
@@ -264,6 +264,15 @@ namespace brolog
 	template <int N>
 	struct Unknown {};
 
+	template <typename VarChainT, int GenName>
+	auto create_user_var_chain(tmp::type_list<>, tmp::type_list<>)
+	{
+		return VarChainT();
+	}
+
+	template <typename VarChainT, int GenName, int N, typename T, typename ... Ts, typename ... ArgTs>
+	auto create_user_var_chain(tmp::type_list<T, Ts...>, tmp::type_list<Unknown<N>, ArgTs...>);
+
 	template <typename VarChainT, int GenName, typename T, typename ... Ts, typename ... ArgTs>
 	auto create_user_var_chain(tmp::type_list<T, Ts...>, tmp::type_list<T, ArgTs...>)
 	{
@@ -280,11 +289,13 @@ namespace brolog
 				tmp::type_list<Ts...>{}, tmp::type_list<ArgTs...>{});
 	}
 
-	template <typename VarChainT, int GenName>
-	auto create_user_var_chain(tmp::type_list<>, tmp::type_list<>)
+	template <int GenName, typename VarChainT>
+	void fill_user_var_chain(VarChainT& /*varChain*/)
 	{
-		return VarChainT();
 	}
+
+	template <int GenName, typename VarChainT, int N, typename ... ArgTs>
+	void fill_user_var_chain(VarChainT& varChain, Unknown<N>, const ArgTs& ... rest);
 
 	template <int GenName, typename VarChainT, typename T, typename ... ArgTs>
 	void fill_user_var_chain(VarChainT& varChain, const T& value, const ArgTs& ... rest)
@@ -299,10 +310,14 @@ namespace brolog
 		fill_user_var_chain<GenName>(varChain, rest...);
 	}
 
-	template <int GenName, typename VarChainT>
-	void fill_user_var_chain(VarChainT& /*varChain*/)
+	template <int GenName, int ... PrevNames>
+	auto get_user_var_chain_name_list(tmp::int_list<PrevNames...> result, tmp::type_list<>)
 	{
+		return result;
 	}
+
+	template <int GenName, int N, typename ... ArgTs, int ... PrevNames>
+	auto get_user_var_chain_name_list(tmp::int_list<PrevNames...>, tmp::type_list<Unknown<N>, ArgTs...>);
 
 	template <int GenName, typename T, typename ... ArgTs, int ... PrevNames>
 	auto get_user_var_chain_name_list(tmp::int_list<PrevNames...>, tmp::type_list<T, ArgTs...>)
@@ -314,11 +329,5 @@ namespace brolog
 	auto get_user_var_chain_name_list(tmp::int_list<PrevNames...>, tmp::type_list<Unknown<N>, ArgTs...>)
 	{
 		return get_user_var_chain_name_list<GenName>(tmp::int_list<PrevNames..., N>{}, tmp::type_list<ArgTs...>{});
-	}
-
-	template <int GenName, int ... PrevNames>
-	auto get_user_var_chain_name_list(tmp::int_list<PrevNames...> result, tmp::type_list<>)
-	{
-		return result;
 	}
 }

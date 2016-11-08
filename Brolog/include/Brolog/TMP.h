@@ -55,12 +55,12 @@ namespace brolog
 
 		/* Replacement for C++17 fold expressions, 'or'. */
 		template <bool B, bool ... Bs>
-		struct fold_or : std::bool_constant<B || fold_or<Bs...>::value>
+		struct fold_or : std::integral_constant<bool, B || fold_or<Bs...>::value>
 		{
 		};
 
 		template <bool B>
-		struct fold_or< B > : std::bool_constant<B>
+		struct fold_or< B > : std::integral_constant<bool, B>
 		{
 		};
 
@@ -72,7 +72,7 @@ namespace brolog
 
 		/* Casts the first element of the series of types that can be cast to the target type. */
 		template <typename Target, typename T, typename ... Ts>
-		auto cast_first_suitable(T& first, Ts& ... rest) -> std::enable_if_t<std::is_base_of<Target, T>::value, Target&>
+		auto cast_first_suitable(T& first, Ts& ... /*rest*/) -> std::enable_if_t<std::is_base_of<Target, T>::value, Target&>
 		{
 			return static_cast<Target&>(first);
 		}

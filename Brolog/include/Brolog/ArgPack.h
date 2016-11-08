@@ -29,7 +29,7 @@ namespace brolog
 			// Continue only if the value is equivalent to the value in the fact
 			if (std::get<I>(args)->value() == std::get<I>(fact))
 			{
-				return unify_arg_pack_element<I + 1>(std::bool_constant<I < sizeof...(Ts)>{}, args, fact, next);
+				return unify_arg_pack_element<I + 1>(std::integral_constant<bool, I < sizeof...(Ts)>{}, args, fact, next);
 			}
 		}
 		else
@@ -38,7 +38,7 @@ namespace brolog
 			std::get<I>(args)->unify(std::get<I>(fact));
 
 			// Continue
-			bool success = unify_arg_pack_element<I + 1>(std::bool_constant<I < sizeof...(Ts)>{}, args, fact, next);
+			bool success = unify_arg_pack_element<I + 1>(std::integral_constant<bool, I < sizeof...(Ts)>{}, args, fact, next);
 
 			// Unbind the var
 			std::get<I>(args)->unbind();
@@ -65,7 +65,7 @@ namespace brolog
 	template <typename ... Ts, typename ContinueFnT>
 	bool unify_arg_pack(const std::tuple<Var<Ts>*...>& args, const std::tuple<Ts...>& fact, const ContinueFnT& next)
 	{
-		return unify_arg_pack_element<0>(std::bool_constant<0 < sizeof...(Ts)>{}, args, fact, next);
+		return unify_arg_pack_element<0>(std::integral_constant<bool, 0 < sizeof...(Ts)>{}, args, fact, next);
 	}
 
 	/* Returns whether the given 'arg pack' has been completely unified, recursive. */
@@ -77,7 +77,7 @@ namespace brolog
 
 	/* Recursive end-case for 'arg_pack_unified', no more members to look at. */
 	template <std::size_t I, typename TupleT>
-	auto arg_pack_unified(const TupleT& argPack) -> std::enable_if_t<I >= std::tuple_size<TupleT>::value, bool>
+	auto arg_pack_unified(const TupleT& /*argPack*/) -> std::enable_if_t<I >= std::tuple_size<TupleT>::value, bool>
 	{
 		return true;
 	}
