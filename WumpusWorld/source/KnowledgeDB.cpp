@@ -108,21 +108,30 @@ void add_neighbor_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y,
+		NEIGHBOR_X,
+		NEIGHBOR_Y
+	};
+
 	// Handles case for neighbor to the left
-	database.insert_rule<RNeighbor, Params<'X', 'Y', 'L', 'Y'>,
-		Satisfy<ConstantSum<int, -1>, 'L', 'X'>>(); // L is X - 1
+	database.insert_rule<RNeighbor, Params<X, Y, NEIGHBOR_X, Y>,
+		Satisfy<ConstantSum<int, -1>, NEIGHBOR_X, X>>(); // NEIGHBOR_X is X - 1
 
 	// Handles case for neighbor to the right
-	database.insert_rule<RNeighbor, Params<'X', 'Y', 'R', 'Y'>,
-		Satisfy<ConstantSum<int, 1>, 'R', 'X'>>(); // R is X + 1
+	database.insert_rule<RNeighbor, Params<X, Y, NEIGHBOR_X, Y>,
+		Satisfy<ConstantSum<int, 1>, NEIGHBOR_X, X>>(); // NEIGHBOR_X is X + 1
 
 	// Handles case for neighbor above
-	database.insert_rule<RNeighbor, Params<'X', 'Y', 'X', 'A'>,
-		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>>(); // A is Y + 1
+	database.insert_rule<RNeighbor, Params<X, Y, X, NEIGHBOR_Y>,
+		Satisfy<ConstantSum<int, 1>, NEIGHBOR_Y, Y>>(); // NEIGHBOR_Y is Y + 1
 
 	// Handles case for neighbor below
-	database.insert_rule<RNeighbor, Params<'X', 'Y', 'X', 'B'>,
-		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>>(); // B is Y - 1
+	database.insert_rule<RNeighbor, Params<X, Y, X, NEIGHBOR_Y>,
+		Satisfy<ConstantSum<int, -1>, NEIGHBOR_Y, Y>>(); // NEIGHBOR_Y is Y - 1
 }
 
 /* Adds all instances of the 'RNoBreeze' rule to the database. */
@@ -130,11 +139,18 @@ void add_no_breeze_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y,
+	};
+
 	// There is no breeze in a tile if we've visited it, and we haven't recorded a breeze or an obstacle
-	database.insert_rule<RNoBreeze, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FObstacle, 'X', 'Y'>,
-		NotSatisfy<FBreeze, 'X', 'Y'>>();
+	database.insert_rule<RNoBreeze, Params<X, Y>,
+		Satisfy<FVisited, X, Y>,
+		NotSatisfy<FObstacle, X, Y>,
+		NotSatisfy<FBreeze, X, Y>>();
 }
 
 /* Adds all instances of the 'RNoStench' rule to the database. */
@@ -142,11 +158,18 @@ void add_no_stench_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y
+	};
+
 	// There is no stench on a tile if we have visited it and we have not recorded a stench or an obstacle
-	database.insert_rule<RNoStench, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FObstacle, 'X', 'Y'>,
-		NotSatisfy<FStench, 'X', 'Y'>>();
+	database.insert_rule<RNoStench, Params<X, Y>,
+		Satisfy<FVisited, X, Y>,
+		NotSatisfy<FObstacle, X, Y>,
+		NotSatisfy<FStench, X, Y>>();
 }
 
 /* Adds all instances of the RNotPit' rule to the database. */
@@ -154,19 +177,28 @@ void add_not_pit_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y,
+		NEIGHBOR_X,
+		NEIGHBOR_Y
+	};
+
 	// There is not a pit on a tile if the tile contains a dead wumpus
-	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<FDeadWumpus, 'X', 'Y'>>();
+	database.insert_rule<RNotPit, Params<X, Y>,
+		Satisfy<FDeadWumpus, X, Y>>();
 
 	// There is not a pit on a tile if we've visited it and did not die from a pit
-	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FPitDeath, 'X', 'Y'>>();
+	database.insert_rule<RNotPit, Params<X, Y>,
+		Satisfy<FVisited, X, Y>,
+		NotSatisfy<FPitDeath, X, Y>>();
 
 	// There is not a pit on a tile if there is not a breeze on any of its neighbors
-	database.insert_rule<RNotPit, Params<'X', 'Y'>,
-		Satisfy<RNoBreeze, 'A', 'B'>,
-		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>>();
+	database.insert_rule<RNotPit, Params<X, Y>,
+		Satisfy<RNoBreeze, NEIGHBOR_X, NEIGHBOR_Y>,
+		Satisfy<RNeighbor, X, Y, NEIGHBOR_X, NEIGHBOR_Y>>();
 }
 
 /* Adds all instances of the 'RPit' rule to the database. */
@@ -174,53 +206,66 @@ void add_pit_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		PIT_X,
+		PIT_Y,
+		BREEZE_X,
+		BREEZE_Y,
+		LEFT_OF_BREEZE_X,
+		RIGHT_OF_BREEZE_X,
+		ABOVE_BREEZE_Y,
+		BELOW_BREEZE_Y
+	};
+
 	// There is a pit on the tile if we went there and died from a pit
-	database.insert_rule<RPit, Params<'X', 'Y'>,
-		Satisfy<FPitDeath, 'X', 'Y'>>();
+	database.insert_rule<RPit, Params<PIT_X, PIT_Y>,
+		Satisfy<FPitDeath, PIT_X, PIT_Y>>();
 
-	database.insert_rule<RPit, Params<'X', 'Y'>,
-		Satisfy<FBreeze, 'E', 'Y'>, // There is a breeze (to the left of the tile)
-		NotSatisfy<FPitDeath, 'E', 'Y'>, // That does not originate from a time we died in a pit
-		Satisfy<ConstantSum<int, 1>, 'X', 'E'>, // X is E + 1
-		Satisfy<ConstantSum<int, -1>, 'L', 'E'>, // L is E - 1
-		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
-		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
-		Satisfy<RNotPit, 'E', 'A'>, // There is not a pit above the breeze
-		Satisfy<RNotPit, 'E', 'B'>, // There is not a pit below the breeze
-		Satisfy<RNotPit, 'L', 'Y'>>(); // There is not a pit to the left of the breeze
+	database.insert_rule<RPit, Params<PIT_X, BREEZE_Y>,
+		Satisfy<FBreeze, BREEZE_X, BREEZE_Y>, // There is a breeze on the same row as the tile
+		NotSatisfy<FPitDeath, BREEZE_X, BREEZE_Y>, // That does not originate from a time we died in a pit
+		Satisfy<ConstantSum<int, 1>, PIT_X, BREEZE_X>, // PIT_X is BREEZE_X + 1 (the breeze is to the left of the tile)
+		Satisfy<ConstantSum<int, -1>, LEFT_OF_BREEZE_X, BREEZE_X>, // LEFT_OF_BREEZE_X is BREEZE_X - 1
+		Satisfy<ConstantSum<int, -1>, BELOW_BREEZE_Y, BREEZE_Y>, // BELOW_BREEZE_Y is BREEZE_Y - 1
+		Satisfy<ConstantSum<int, 1>, ABOVE_BREEZE_Y, BREEZE_Y>, // ABOVE_BREEZE_Y is BREEZE_Y + 1
+		Satisfy<RNotPit, BREEZE_X, ABOVE_BREEZE_Y>, // There is not a pit above the breeze
+		Satisfy<RNotPit, BREEZE_X, BELOW_BREEZE_Y>, // There is not a pit below the breeze
+		Satisfy<RNotPit, LEFT_OF_BREEZE_X, BREEZE_Y>>(); // There is not a pit to the left of the breeze
 
-	database.insert_rule<RPit, Params<'X', 'Y'>,
-		Satisfy<FBreeze, 'E', 'Y'>, // There is a breeze (to the right of the tile)
-		NotSatisfy<FPitDeath, 'E', 'Y'>, // That does not originate from a time we died in a pit
-		Satisfy<ConstantSum<int, -1>, 'X', 'E'>, // X is E - 1
-		Satisfy<ConstantSum<int, 1>, 'R', 'E'>, // R is E + 1
-		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
-		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
-		Satisfy<RNotPit, 'E', 'A'>, // There is not a pit above the breeze
-		Satisfy<RNotPit, 'E', 'B'>, // There is not a pit below the breeze
-		Satisfy<RNotPit, 'R', 'Y'>>(); // There is not a pit to the right of the breeze
+	database.insert_rule<RPit, Params<PIT_X, BREEZE_Y>,
+		Satisfy<FBreeze, BREEZE_X, BREEZE_Y>, // There is a breeze on the same row as the tile
+		NotSatisfy<FPitDeath, BREEZE_X, BREEZE_Y>, // That does not originate from a time we died in a pit
+		Satisfy<ConstantSum<int, -1>, PIT_X, BREEZE_X>, // PIT_X is BREEZE_X - 1 (the breeze is to the right of the tile)
+		Satisfy<ConstantSum<int, 1>, RIGHT_OF_BREEZE_X, BREEZE_X>, // RIGHT_OF_BREEZE_X is BREEZE_X + 1
+		Satisfy<ConstantSum<int, -1>, BELOW_BREEZE_Y, BREEZE_Y>, // BELOW_BREEZE_Y is PIT_Y - 1
+		Satisfy<ConstantSum<int, 1>, ABOVE_BREEZE_Y, BREEZE_Y>, // ABOVE_BREEZE_Y is PIT_Y + 1
+		Satisfy<RNotPit, BREEZE_X, ABOVE_BREEZE_Y>, // There is not a pit above the breeze
+		Satisfy<RNotPit, BREEZE_X, BELOW_BREEZE_Y>, // There is not a pit below the breeze
+		Satisfy<RNotPit, RIGHT_OF_BREEZE_X, BREEZE_Y>>(); // There is not a pit to the right of the breeze
 
-	database.insert_rule<RPit, Params<'X', 'Y'>,
-		Satisfy<FBreeze, 'X', 'E'>, // There is a breeze (below the tile)
-		NotSatisfy<FPitDeath, 'X', 'E'>, // That does not originate from a time we died in a pit
-		Satisfy<ConstantSum<int, 1>, 'Y', 'E'>, // Y is E + 1
-		Satisfy<ConstantSum<int, -1>, 'B', 'E'>, // B is E - 1
-		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
-		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
-		Satisfy<RNotPit, 'X', 'B'>, // There is not a pit below the breeze
-		Satisfy<RNotPit, 'L', 'E'>, // There is not a pit to the left of the breeze
-		Satisfy<RNotPit, 'R', 'E'>>(); // There is not a pit to the right of the breeze
+	database.insert_rule<RPit, Params<BREEZE_X, PIT_Y>,
+		Satisfy<FBreeze, BREEZE_X, BREEZE_Y>, // There is a breeze in the same column as the tile
+		NotSatisfy<FPitDeath, BREEZE_X, BREEZE_Y>, // That does not originate from a time we died in a pit
+		Satisfy<ConstantSum<int, 1>, PIT_Y, BREEZE_Y>, // PIT_Y is BREEZE_Y + 1 (the breeze is below the tile)
+		Satisfy<ConstantSum<int, -1>, BELOW_BREEZE_Y, BREEZE_Y>, // BELOW_BREEZE_Y is BREEZE_Y - 1
+		Satisfy<ConstantSum<int, -1>, LEFT_OF_BREEZE_X, BREEZE_X>, // LEFT_OF_BREEZE_X is BREEZE_X - 1
+		Satisfy<ConstantSum<int, 1>, RIGHT_OF_BREEZE_X, BREEZE_X>, // RIGHT_OF_BREEZE_X is BREEZE_X + 1
+		Satisfy<RNotPit, BREEZE_X, BELOW_BREEZE_Y>, // There is not a pit below the breeze
+		Satisfy<RNotPit, LEFT_OF_BREEZE_X, BREEZE_Y>, // There is not a pit to the left of the breeze
+		Satisfy<RNotPit, RIGHT_OF_BREEZE_X, BREEZE_Y>>(); // There is not a pit to the right of the breeze
 
-	database.insert_rule<RPit, Params<'X', 'Y'>,
-		Satisfy<FBreeze, 'X', 'E'>, // There is a breeze (above the tile)
-		NotSatisfy<FPitDeath, 'X', 'E'>, // That does not originate from a time we died in a pit
-		Satisfy<ConstantSum<int, -1>, 'Y', 'E'>, // Y is E - 1
-		Satisfy<ConstantSum<int, 1>, 'A', 'E'>, // A is E + 1
-		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
-		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
-		Satisfy<RNotPit, 'X', 'A'>, // There is not a pit above the breeze
-		Satisfy<RNotPit, 'L', 'E'>, // There is not a pit to the left of the breeze
-		Satisfy<RNotPit, 'R', 'E'>>(); // There is not a pit to the right of the breeze
+	database.insert_rule<RPit, Params<BREEZE_X, PIT_Y>,
+		Satisfy<FBreeze, BREEZE_X, BREEZE_Y>, // There is a breeze in the same column as the tile
+		NotSatisfy<FPitDeath, BREEZE_X, BREEZE_Y>, // That does not originate from a time we died in a pit
+		Satisfy<ConstantSum<int, -1>, PIT_Y, BREEZE_Y>, // PIT_Y is BREEZE_Y - 1 (the breeze is above the tile)
+		Satisfy<ConstantSum<int, 1>, ABOVE_BREEZE_Y, BREEZE_Y>, // ABOVE_BREEZE_Y is BREEZE_Y + 1
+		Satisfy<ConstantSum<int, -1>, LEFT_OF_BREEZE_X, BREEZE_X>, // LEFT_OF_BREEZE_X is BREEZE_X - 1
+		Satisfy<ConstantSum<int, 1>, RIGHT_OF_BREEZE_X, BREEZE_X>, // RIGHT_OF_BREEZE_X is BREEZE_X + 1
+		Satisfy<RNotPit, BREEZE_X, ABOVE_BREEZE_Y>, // There is not a pit above the breeze
+		Satisfy<RNotPit, LEFT_OF_BREEZE_X, BREEZE_Y>, // There is not a pit to the left of the breeze
+		Satisfy<RNotPit, RIGHT_OF_BREEZE_X, BREEZE_Y>>(); // There is not a pit to the right of the breeze
 }
 
 /* Adds all instances of the 'RNotWumpus' rule to the database. */
@@ -228,23 +273,32 @@ void add_not_wumpus_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y,
+		NEIGHBOR_X,
+		NEIGHBOR_Y
+	};
+
 	// There is not a wumpus on the tile if the tile contains a dead wumpus
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<FDeadWumpus, 'X', 'Y'>>();
+	database.insert_rule<RNotWumpus, Params<X, Y>,
+		Satisfy<FDeadWumpus, X, Y>>();
 
 	// There is not a wumpus on the tile if we have been there and did not die from a wumpus
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FWumpusDeath, 'X', 'Y'>>();
+	database.insert_rule<RNotWumpus, Params<X, Y>,
+		Satisfy<FVisited, X, Y>,
+		NotSatisfy<FWumpusDeath, X, Y>>();
 
 	// There is not a wumpus on the tile if there is a pit on the tile
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<RPit, 'X', 'Y'>>();
+	database.insert_rule<RNotWumpus, Params<X, Y>,
+		Satisfy<RPit, X, Y>>();
 
 	// There is not a wumpus on the tile if there is not a stench on one of its neighbors
-	database.insert_rule<RNotWumpus, Params<'X', 'Y'>,
-		Satisfy<RNoStench, 'A', 'B'>,
-		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>>();
+	database.insert_rule<RNotWumpus, Params<X, Y>,
+		Satisfy<RNoStench, NEIGHBOR_X, NEIGHBOR_Y>,
+		Satisfy<RNeighbor, X, Y, NEIGHBOR_X, NEIGHBOR_Y>>();
 }
 
 /* Adds all instances of the 'RWumpus' rule to the database. */
@@ -252,54 +306,67 @@ void add_wumpus_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		WUMPUS_X,
+		WUMPUS_Y,
+		STENCH_X,
+		STENCH_Y,
+		LEFT_OF_STENCH_X,
+		RIGHT_OF_STENCH_X,
+		ABOVE_STENCH_Y,
+		BELOW_STENCH_Y,
+	};
+
 	// A tile contains a wumpus if we've died from a wumpus and have not killed it
-	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FWumpusDeath, 'X', 'Y'>,
-		NotSatisfy<FDeadWumpus, 'X', 'Y'>>();
+	database.insert_rule<RWumpus, Params<WUMPUS_X, WUMPUS_Y>,
+		Satisfy<FWumpusDeath, WUMPUS_X, WUMPUS_Y>,
+		NotSatisfy<FDeadWumpus, WUMPUS_X, WUMPUS_Y>>();
 
-	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'S', 'Y'>, // There is a stench (to the left of the tile)
-		Satisfy<RNotWumpus, 'S', 'Y'>, // That does NOT contain a wumpus
-		Satisfy<ConstantSum<int, 1>, 'X', 'S'>, // X is S + 1
-		Satisfy<ConstantSum<int, -1>, 'L', 'S'>, // L is S - 1
-		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
-		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
-		Satisfy<RNotWumpus, 'S', 'A'>, // There is not a wumpus above the stench
-		Satisfy<RNotWumpus, 'S', 'B'>, // There is not a wumpus below the stench
-		Satisfy<RNotWumpus, 'L', 'Y'>>(); // There is not a wumpus to the left of the stench
+	database.insert_rule<RWumpus, Params<WUMPUS_X, STENCH_Y>,
+		Satisfy<FStench, STENCH_X, STENCH_Y>, // There is a stench in the same row as the tile
+		Satisfy<RNotWumpus, STENCH_X, STENCH_Y>, // That does NOT contain a wumpus
+		Satisfy<ConstantSum<int, 1>, WUMPUS_X, STENCH_X>, // WUMPUS_X is STENCH_X + 1 (the stench is to the left of the tile)
+		Satisfy<ConstantSum<int, -1>, LEFT_OF_STENCH_X, STENCH_X>, // LEFT_OF_STENCH_X is STENCH_X - 1
+		Satisfy<ConstantSum<int, -1>, BELOW_STENCH_Y, STENCH_Y>, // BELOW_STENCH_Y is STENCH_Y - 1
+		Satisfy<ConstantSum<int, 1>, ABOVE_STENCH_Y, STENCH_Y>, // ABOVE_STENCH_Y is STENCH_Y + 1
+		Satisfy<RNotWumpus, STENCH_X, ABOVE_STENCH_Y>, // There is not a wumpus above the stench
+		Satisfy<RNotWumpus, STENCH_X, BELOW_STENCH_Y>, // There is not a wumpus below the stench
+		Satisfy<RNotWumpus, LEFT_OF_STENCH_X, STENCH_Y>>(); // There is not a wumpus to the left of the stench
 
-	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'S', 'Y'>, // There is a stench (to the right of the tile)
-		Satisfy<RNotWumpus, 'S', 'Y'>, // That does NOT contain a wumpus
-		Satisfy<ConstantSum<int, -1>, 'X', 'S'>, // X is S - 1
-		Satisfy<ConstantSum<int, 1>, 'R', 'S'>, // R is S + 1
-		Satisfy<ConstantSum<int, -1>, 'B', 'Y'>, // B is Y - 1
-		Satisfy<ConstantSum<int, 1>, 'A', 'Y'>, // A is Y + 1
-		Satisfy<RNotWumpus, 'S', 'A'>, // There is not a wumpus above the stench
-		Satisfy<RNotWumpus, 'S', 'B'>, // There is not a wumpus below the stench
-		Satisfy<RNotWumpus, 'R', 'Y'>>(); // There is not a wumpus to the right of the stench
+	database.insert_rule<RWumpus, Params<WUMPUS_X, STENCH_Y>,
+		Satisfy<FStench, STENCH_X, STENCH_Y>, // There is a stench in the same row as the tile
+		Satisfy<RNotWumpus, STENCH_X, STENCH_Y>, // That does NOT contain a wumpus
+		Satisfy<ConstantSum<int, -1>, WUMPUS_X, STENCH_X>, // WUMPUS_X is STENCH_X - 1 (the stench is to the right of the tile)
+		Satisfy<ConstantSum<int, 1>, RIGHT_OF_STENCH_X, STENCH_X>, // RIGHT_OF_STENCH_X is STENCH_X + 1
+		Satisfy<ConstantSum<int, -1>, BELOW_STENCH_Y, STENCH_Y>, // BELOW_STENCH_Y is STENCH_Y - 1
+		Satisfy<ConstantSum<int, 1>, ABOVE_STENCH_Y, STENCH_Y>, // ABOVE_STENCH_Y is STENCH_Y + 1
+		Satisfy<RNotWumpus, STENCH_X, ABOVE_STENCH_Y>, // There is not a wumpus above the stench
+		Satisfy<RNotWumpus, STENCH_X, BELOW_STENCH_Y>, // There is not a wumpus below the stench
+		Satisfy<RNotWumpus, RIGHT_OF_STENCH_X, STENCH_Y>>(); // There is not a wumpus to the right of the stench
 
-	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'X', 'S'>, // There is a stench (below the tile)
-		Satisfy<RNotWumpus, 'X', 'S'>, // That does NOT contain a wumpus
-		Satisfy<ConstantSum<int, 1>, 'Y', 'S'>, // Y is S + 1
-		Satisfy<ConstantSum<int, -1>, 'B', 'S'>, // B is S - 1
-		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
-		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
-		Satisfy<RNotWumpus, 'X', 'B'>, // There is not a wumpus below the stench
-		Satisfy<RNotWumpus, 'L', 'S'>, // There is not a wumpus to the left of the stench
-		Satisfy<RNotWumpus, 'R', 'S'>>(); // There is not a wumpus to the right of the stench
+	database.insert_rule<RWumpus, Params<STENCH_X, WUMPUS_Y>,
+		Satisfy<FStench, STENCH_X, STENCH_Y>, // There is a stench in the same column as the tile
+		Satisfy<RNotWumpus, STENCH_X, STENCH_Y>, // That does NOT contain a wumpus
+		Satisfy<ConstantSum<int, 1>, WUMPUS_Y, STENCH_Y>, // WUMPUS_Y is STENCH_Y + 1 (the stench is below the tile)
+		Satisfy<ConstantSum<int, -1>, BELOW_STENCH_Y, STENCH_Y>, // BELOW_STENCH_Y is STENCH_Y - 1
+		Satisfy<ConstantSum<int, -1>, LEFT_OF_STENCH_X, STENCH_X>, // LEFT_OF_STENCH_X is STENCH_X - 1
+		Satisfy<ConstantSum<int, 1>, RIGHT_OF_STENCH_X, STENCH_X>, // RIGHT_OF_STENCH_X is STENCH_X + 1
+		Satisfy<RNotWumpus, STENCH_X, BELOW_STENCH_Y>, // There is not a wumpus below the stench
+		Satisfy<RNotWumpus, LEFT_OF_STENCH_X, STENCH_Y>, // There is not a wumpus to the left of the stench
+		Satisfy<RNotWumpus, RIGHT_OF_STENCH_X, STENCH_Y>>(); // There is not a wumpus to the right of the stench
 
-	database.insert_rule<RWumpus, Params<'X', 'Y'>,
-		Satisfy<FStench, 'X', 'S'>, // There is a (stench above the tile)
-		Satisfy<RNotWumpus, 'X', 'S'>, // That does NOT contain a wumpus
-		Satisfy<ConstantSum<int, -1>, 'Y', 'S'>, // Y is S - 1
-		Satisfy<ConstantSum<int, 1>, 'A', 'S'>, // A is S + 1
-		Satisfy<ConstantSum<int, -1>, 'L', 'X'>, // L is X - 1
-		Satisfy<ConstantSum<int, 1>, 'R', 'X'>, // R is X + 1
-		Satisfy<RNotWumpus, 'X', 'A'>, // There is not a wumpus above the stench
-		Satisfy<RNotWumpus, 'L', 'S'>, // There is not a wumpus to the left of the stench
-		Satisfy<RNotWumpus, 'R', 'S'>>(); // There is not a wumpus to the right of the stench
+	database.insert_rule<RWumpus, Params<STENCH_X, WUMPUS_Y>,
+		Satisfy<FStench, STENCH_X, STENCH_Y>, // There is a stench in the same column as the tile
+		Satisfy<RNotWumpus, STENCH_X, STENCH_Y>, // That does NOT contain a wumpus
+		Satisfy<ConstantSum<int, -1>, WUMPUS_Y, STENCH_Y>, // WUMPUS_Y is STENCH_Y - 1 (the stench is above the tile)
+		Satisfy<ConstantSum<int, 1>, ABOVE_STENCH_Y, STENCH_Y>, // ABOVE_STENCH_Y is STENCH_Y + 1
+		Satisfy<ConstantSum<int, -1>, LEFT_OF_STENCH_X, STENCH_X>, // LEFT_OF_STENCH_X is STENCH_X - 1
+		Satisfy<ConstantSum<int, 1>, RIGHT_OF_STENCH_X, STENCH_X>, // RIGHT_OF_STENCH_X is STENCH_X + 1
+		Satisfy<RNotWumpus, STENCH_X, ABOVE_STENCH_Y>, // There is not a wumpus above the stench
+		Satisfy<RNotWumpus, LEFT_OF_STENCH_X, STENCH_Y>, // There is not a wumpus to the left of the stench
+		Satisfy<RNotWumpus, RIGHT_OF_STENCH_X, STENCH_Y>>(); // There is not a wumpus to the right of the stench
 }
 
 /* Adds all instances of the 'RSafe' rule to the database. */
@@ -307,10 +374,17 @@ void add_safe_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y
+	};
+
 	// A tile is safe if it does not contain a wumpus or a pit
-	database.insert_rule<RSafe, Params<'X', 'Y'>,
-		Satisfy<RNotPit, 'X', 'Y'>,
-		Satisfy<RNotWumpus, 'X', 'Y'>>();
+	database.insert_rule<RSafe, Params<X, Y>,
+		Satisfy<RNotPit, X, Y>,
+		Satisfy<RNotWumpus, X, Y>>();
 }
 
 /* Adds all instances of the 'RSafeVisited' rule to the database. */
@@ -318,17 +392,24 @@ void add_safe_visited_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y
+	};
+
 	// A tile is safe and visited if it has been visited, and we were not killed by a pit or a wumpus
-	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FPitDeath, 'X', 'Y'>,
-		NotSatisfy<FWumpusDeath, 'X', 'Y'>>();
+	database.insert_rule<RSafeVisited, Params<X, Y>,
+		Satisfy<FVisited, X, Y>,
+		NotSatisfy<FPitDeath, X, Y>,
+		NotSatisfy<FWumpusDeath, X, Y>>();
 
 	// A tile is safe and visited if it has been visited, we were not killed by a pit, and there is a dead wumpus on it
-	database.insert_rule<RSafeVisited, Params<'X', 'Y'>,
-		Satisfy<FVisited, 'X', 'Y'>,
-		NotSatisfy<FPitDeath, 'X', 'Y'>,
-		Satisfy<FDeadWumpus, 'X', 'Y'>>();
+	database.insert_rule<RSafeVisited, Params<X, Y>,
+		Satisfy<FVisited, X, Y>,
+		NotSatisfy<FPitDeath, X, Y>,
+		Satisfy<FDeadWumpus, X, Y>>();
 }
 
 /* Adds all instances of the 'RReachable' rule to the database. */
@@ -336,12 +417,21 @@ void add_reachable_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y,
+		NEIGHBOR_X,
+		NEIGHBOR_Y
+	};
+
 	// A tile is reachable if it neighbors a safe visited tile that is not an obstacle, and it itself is not proven to be an obstacle
-	database.insert_rule<RReachable, Params<'X', 'Y'>,
-		Satisfy<RSafeVisited, 'A', 'B'>,
-		NotSatisfy<FObstacle, 'A', 'B'>,
-		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>,
-		NotSatisfy<FObstacle, 'X', 'Y'>>();
+	database.insert_rule<RReachable, Params<X, Y>,
+		Satisfy<RSafeVisited, NEIGHBOR_X, NEIGHBOR_Y>,
+		NotSatisfy<FObstacle, NEIGHBOR_X, NEIGHBOR_Y>,
+		Satisfy<RNeighbor, X, Y, NEIGHBOR_X, NEIGHBOR_Y>,
+		NotSatisfy<FObstacle, X, Y>>();
 }
 
 /* Adds all instances of the 'RReachableUnexplored' rules to the database. */
@@ -349,10 +439,17 @@ void add_reachable_unexplored_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y
+	};
+
 	// A tile is reachable and unexplored if it is reachable and not visited
-	database.insert_rule<RReachableUnexplored, Params<'X', 'Y'>,
-		Satisfy<RReachable, 'X', 'Y'>,
-		NotSatisfy<FVisited, 'X', 'Y'>>();
+	database.insert_rule<RReachableUnexplored, Params<X, Y>,
+		Satisfy<RReachable, X, Y>,
+		NotSatisfy<FVisited, X, Y>>();
 }
 
 /* Adds all instances of the 'RSafeReachableUnexplored' rules to the database. */
@@ -360,10 +457,17 @@ void add_safe_reachable_unexplored_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y
+	};
+
 	// A tile is safe and reachable and unexplored if it is reachable, unexplored, and proven to be safe
-	database.insert_rule<RSafeReachableUnexplored, Params<'X', 'Y'>,
-		Satisfy<RReachableUnexplored, 'X', 'Y'>,
-		Satisfy<RSafe, 'X', 'Y'>>();
+	database.insert_rule<RSafeReachableUnexplored, Params<X, Y>,
+		Satisfy<RReachableUnexplored, X, Y>,
+		Satisfy<RSafe, X, Y>>();
 }
 
 /* Adds all instances of the 'RMaybeSafeReachableUnexplored' rules to the database. */
@@ -371,23 +475,39 @@ void add_maybe_safe_reachable_unexplored_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y
+	};
+
 	// A tile is maybe safe, reachable, and unexplored if it is reachable and unexplored, and not proven to be a pit or a wumpus
-	database.insert_rule<RMaybeSafeReachableUnexplored, Params<'X', 'Y'>,
-		Satisfy<RReachableUnexplored, 'X', 'Y'>,
-		NotSatisfy<RPit, 'X', 'Y'>,
-		NotSatisfy<RWumpus, 'X', 'Y'>>();
+	database.insert_rule<RMaybeSafeReachableUnexplored, Params<X, Y>,
+		Satisfy<RReachableUnexplored, X, Y>,
+		NotSatisfy<RPit, X, Y>,
+		NotSatisfy<RWumpus, X, Y>>();
 }
 
 void add_shoot_wumpus_rules(WumpusWorldDB& database)
 {
 	using namespace brolog;
 
+	// Variable names
+	enum
+	{
+		X,
+		Y,
+		SAFE_NEIGHBOR_X,
+		SAFE_NEIGHBOR_Y
+	};
+
 	// You can shoot a wumpus from a safe neighboring tile that is not an obstacle (keep it simple)
-	database.insert_rule<RShootWumpus, Params<'X', 'Y', 'A', 'B'>,
-		Satisfy<RWumpus, 'X', 'Y'>,
-		Satisfy<RNeighbor, 'X', 'Y', 'A', 'B'>,
-		Satisfy<RSafeVisited, 'A', 'B'>,
-		NotSatisfy<FObstacle, 'A', 'B'>>();
+	database.insert_rule<RShootWumpus, Params<X, Y, SAFE_NEIGHBOR_X, SAFE_NEIGHBOR_Y>,
+		Satisfy<RWumpus, X, Y>,
+		Satisfy<RNeighbor, X, Y, SAFE_NEIGHBOR_X, SAFE_NEIGHBOR_Y>,
+		Satisfy<RSafeVisited, SAFE_NEIGHBOR_X, SAFE_NEIGHBOR_Y>,
+		NotSatisfy<FObstacle, SAFE_NEIGHBOR_X, SAFE_NEIGHBOR_Y>>();
 }
 
 //////////////////////////////
@@ -512,37 +632,37 @@ void KnowledgeDB::visited(Coordinate coord, TilePercepts_t percepts)
 	_data->database.insert_fact<FVisited>(coord.x, coord.y);
 
 	// Add the stench breeze fact, if observed
-	if ((percepts & TilePercepts::BREEZE) != 0)
+	if (percepts & TilePercepts::BREEZE)
 	{
 		_data->database.insert_fact<FBreeze>(coord.x, coord.y);
 	}
 
 	// Add the stench fact, if observed
-	if ((percepts & TilePercepts::STENCH) != 0)
+	if (percepts & TilePercepts::STENCH)
 	{
 		_data->database.insert_fact<FStench>(coord.x, coord.y);
 	}
 
 	// Add the glimmer fact, if observed
-	if ((percepts & TilePercepts::GLIMMER) != 0)
+	if (percepts & TilePercepts::GLIMMER)
 	{
 		_data->database.insert_fact<FGlimmer>(coord.x, coord.y);
 	}
 
 	// Add the obstacle fact, if observed
-	if ((percepts & TilePercepts::BUMP) != 0)
+	if (percepts & TilePercepts::BUMP)
 	{
 		_data->database.insert_fact<FObstacle>(coord.x, coord.y);
 	}
 
 	// Add the pit death fact, if observed
-	if ((percepts & TilePercepts::PIT_DEATH) != 0)
+	if (percepts & TilePercepts::PIT_DEATH)
 	{
 		_data->database.insert_fact<FPitDeath>(coord.x, coord.y);
 	}
 
 	// Add the wumpus death fact, if observed
-	if ((percepts & TilePercepts::WUMPUS_DEATH) != 0)
+	if (percepts & TilePercepts::WUMPUS_DEATH)
 	{
 		_data->database.insert_fact<FWumpusDeath>(coord.x, coord.y);
 	}
